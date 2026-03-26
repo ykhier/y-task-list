@@ -1,41 +1,41 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { toDateStr, defaultEndTime } from '@/lib/date'
-import type { Task, CalendarEvent } from '@/types'
+} from "@/components/ui/select";
+import { toDateStr } from "@/lib/date";
+import type { Task, CalendarEvent } from "@/types";
 
 const DAY_OPTIONS = [
-  { label: 'ראשון',  value: 0 },
-  { label: 'שני',    value: 1 },
-  { label: 'שלישי', value: 2 },
-  { label: 'רביעי', value: 3 },
-  { label: 'חמישי', value: 4 },
-  { label: 'שישי',  value: 5 },
-  { label: 'שבת',   value: 6 },
-]
+  { label: "ראשון", value: 0 },
+  { label: "שני", value: 1 },
+  { label: "שלישי", value: 2 },
+  { label: "רביעי", value: 3 },
+  { label: "חמישי", value: 4 },
+  { label: "שישי", value: 5 },
+  { label: "שבת", value: 6 },
+];
 
 function getDateForWeekday(dayIndex: number): string {
-  const now = new Date()
-  const diff = dayIndex - now.getDay()
-  const target = new Date(now)
-  target.setDate(now.getDate() + diff)
-  return toDateStr(target)
+  const now = new Date();
+  const diff = dayIndex - now.getDay();
+  const target = new Date(now);
+  target.setDate(now.getDate() + diff);
+  return toDateStr(target);
 }
 
 function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return h * 60 + m
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
 }
 
 function findConflict(
@@ -43,41 +43,43 @@ function findConflict(
   startTime: string,
   events: CalendarEvent[],
   tasks: Task[],
-  excludeTaskId?: string
+  excludeTaskId?: string,
 ): string | null {
-  const start = timeToMinutes(startTime)
-  const end   = start + 60 // default 1hr block
+  const start = timeToMinutes(startTime);
+  const end = start + 60; // default 1hr block
 
   for (const ev of events) {
-    if (ev.date !== date) continue
-    const evStart = timeToMinutes(ev.start_time)
-    const evEnd   = timeToMinutes(ev.end_time)
+    if (ev.date !== date) continue;
+    const evStart = timeToMinutes(ev.start_time);
+    const evEnd = timeToMinutes(ev.end_time);
     if (start < evEnd && end > evStart) {
-      return `חופף עם האירוע "${ev.title}" (${ev.start_time}–${ev.end_time})`
+      return `חופף עם האירוע "${ev.title}" (${ev.start_time}–${ev.end_time})`;
     }
   }
 
   for (const task of tasks) {
-    if (task.id === excludeTaskId) continue
-    if (task.date !== date || !task.time) continue
-    const taskStart = timeToMinutes(task.time)
-    const taskEnd   = taskStart + 60
+    if (task.id === excludeTaskId) continue;
+    if (task.date !== date || !task.time) continue;
+    const taskStart = timeToMinutes(task.time);
+    const taskEnd = taskStart + 60;
     if (start < taskEnd && end > taskStart) {
-      return `חופף עם המשימה "${task.title}" (${task.time})`
+      return `חופף עם המשימה "${task.title}" (${task.time})`;
     }
   }
 
-  return null
+  return null;
 }
 
 interface TaskFormProps {
-  initialDate?: string
-  editTask?: Task | null
-  events?: CalendarEvent[]
-  tasks?: Task[]
-  onSubmit: (data: Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>) => void
-  onCancel: () => void
-  isLoading?: boolean
+  initialDate?: string;
+  editTask?: Task | null;
+  events?: CalendarEvent[];
+  tasks?: Task[];
+  onSubmit: (
+    data: Omit<Task, "id" | "user_id" | "created_at" | "is_completed">,
+  ) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
 }
 
 export default function TaskForm({
@@ -89,48 +91,51 @@ export default function TaskForm({
   onCancel,
   isLoading,
 }: TaskFormProps) {
-  const today = toDateStr(new Date())
+  const today = toDateStr(new Date());
 
   const initDay = () => {
-    const dateStr = editTask?.date ?? initialDate ?? today
-    return new Date(dateStr + 'T00:00:00').getDay()
-  }
+    const dateStr = editTask?.date ?? initialDate ?? today;
+    return new Date(dateStr + "T00:00:00").getDay();
+  };
 
-  const [title, setTitle]           = useState(editTask?.title ?? '')
-  const [description, setDescription] = useState(editTask?.description ?? '')
-  const [dayIndex, setDayIndex]     = useState<number>(initDay)
-  const [time, setTime]             = useState(editTask?.time ?? '')
-  const [conflict, setConflict]     = useState<string | null>(null)
+  const [title, setTitle] = useState(editTask?.title ?? "");
+  const [description, setDescription] = useState(editTask?.description ?? "");
+  const [dayIndex, setDayIndex] = useState<number>(initDay);
+  const [time, setTime] = useState(editTask?.time ?? "");
+  const [conflict, setConflict] = useState<string | null>(null);
 
   useEffect(() => {
     if (editTask) {
-      setTitle(editTask.title)
-      setDescription(editTask.description ?? '')
-      setDayIndex(new Date(editTask.date + 'T00:00:00').getDay())
-      setTime(editTask.time ?? '')
+      setTitle(editTask.title);
+      setDescription(editTask.description ?? "");
+      setDayIndex(new Date(editTask.date + "T00:00:00").getDay());
+      setTime(editTask.time ?? "");
     }
-  }, [editTask])
+  }, [editTask]);
 
   // Live conflict check
   useEffect(() => {
-    if (!time) { setConflict(null); return }
-    const date = getDateForWeekday(dayIndex)
-    const result = findConflict(date, time, events, tasks, editTask?.id)
-    setConflict(result)
-  }, [dayIndex, time, events, tasks, editTask?.id])
+    if (!time) {
+      setConflict(null);
+      return;
+    }
+    const date = getDateForWeekday(dayIndex);
+    const result = findConflict(date, time, events, tasks, editTask?.id);
+    setConflict(result);
+  }, [dayIndex, time, events, tasks, editTask?.id]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!title.trim()) return
-    if (conflict) return
-    const date = getDateForWeekday(dayIndex)
+    e.preventDefault();
+    if (!title.trim()) return;
+    if (conflict) return;
+    const date = getDateForWeekday(dayIndex);
     onSubmit({
-      title:       title.trim(),
+      title: title.trim(),
       description: description.trim() || null,
       date,
-      time:        time || null,
-    })
-  }
+      time: time || null,
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -179,7 +184,9 @@ export default function TaskForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="task-time">
           שעה
-          <span className="ms-1 text-xs text-slate-400 font-normal">(מוסיף ללוח שנה)</span>
+          <span className="ms-1 text-xs text-slate-400 font-normal">
+            (מוסיף ללוח שנה)
+          </span>
         </Label>
         <Input
           id="task-time"
@@ -196,13 +203,21 @@ export default function TaskForm({
       )}
 
       <div className="flex gap-2 justify-end pt-1">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+        >
           ביטול
         </Button>
-        <Button type="submit" disabled={isLoading || !title.trim() || !!conflict}>
-          {isLoading ? 'שומר...' : editTask ? 'שמור שינויים' : 'הוסף משימה'}
+        <Button
+          type="submit"
+          disabled={isLoading || !title.trim() || !!conflict}
+        >
+          {isLoading ? "שומר..." : editTask ? "שמור שינויים" : "הוסף משימה"}
         </Button>
       </div>
     </form>
-  )
+  );
 }

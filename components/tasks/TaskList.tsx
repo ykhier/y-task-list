@@ -1,39 +1,40 @@
-'use client'
+"use client";
 
-import { useState, useMemo } from 'react'
-import { Plus, SlidersHorizontal, CheckCircle2, Circle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import TaskItem from './TaskItem'
+import { useState, useMemo } from "react";
+import { Plus, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import TaskItem from "./TaskItem";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import TaskForm from './TaskForm'
-import { toDateStr, formatDayFull } from '@/lib/date'
-import { cn } from '@/lib/utils'
-import type { Task, CalendarEvent, TaskFilter } from '@/types'
+} from "@/components/ui/dialog";
+import TaskForm from "./TaskForm";
+import { toDateStr } from "@/lib/date";
+import { cn } from "@/lib/utils";
+import type { Task, CalendarEvent, TaskFilter } from "@/types";
 
 interface TaskListProps {
-  tasks: Task[]
-  events?: CalendarEvent[]
-  selectedDate?: string
-  isLoading?: boolean
-  onAdd: (data: Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>) => Promise<void>
-  onToggle: (id: string, completed: boolean) => Promise<void>
-  onDelete: (id: string) => Promise<void>
-  onEdit: (id: string, data: Partial<Task>) => Promise<void>
+  tasks: Task[];
+  events?: CalendarEvent[];
+  selectedDate?: string;
+  isLoading?: boolean;
+  onAdd: (
+    data: Omit<Task, "id" | "user_id" | "created_at" | "is_completed">,
+  ) => Promise<void>;
+  onToggle: (id: string, completed: boolean) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onEdit: (id: string, data: Partial<Task>) => Promise<void>;
 }
 
 const FILTERS: { label: string; value: TaskFilter }[] = [
-  { label: 'הכל',      value: 'all' },
-  { label: 'היום',     value: 'today' },
-  { label: 'השבוע',    value: 'week' },
-  { label: 'פעיל',     value: 'active' },
-  { label: 'הושלמו',   value: 'completed' },
-]
+  { label: "הכל", value: "all" },
+  { label: "היום", value: "today" },
+  { label: "השבוע", value: "week" },
+  { label: "פעיל", value: "active" },
+  { label: "הושלמו", value: "completed" },
+];
 
 export default function TaskList({
   tasks,
@@ -45,57 +46,69 @@ export default function TaskList({
   onDelete,
   onEdit,
 }: TaskListProps) {
-  const [filter, setFilter] = useState<TaskFilter>(selectedDate ? 'all' : 'today')
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [filter, setFilter] = useState<TaskFilter>(
+    selectedDate ? "all" : "today",
+  );
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const today = toDateStr(new Date())
+  const today = toDateStr(new Date());
 
   const filtered = useMemo(() => {
-    let list = tasks
+    let list = tasks;
     if (selectedDate) {
-      list = list.filter((t) => t.date === selectedDate)
+      list = list.filter((t) => t.date === selectedDate);
     } else {
-      if (filter === 'today')     list = list.filter((t) => t.date === today)
-      if (filter === 'week') {
-        const now = new Date()
-        const weekStart = toDateStr(new Date(now.setDate(now.getDate() - now.getDay())))
-        const weekEnd   = toDateStr(new Date(new Date().setDate(new Date().getDate() + (6 - new Date().getDay()))))
-        list = list.filter((t) => t.date >= weekStart && t.date <= weekEnd)
+      if (filter === "today") list = list.filter((t) => t.date === today);
+      if (filter === "week") {
+        const now = new Date();
+        const weekStart = toDateStr(
+          new Date(now.setDate(now.getDate() - now.getDay())),
+        );
+        const weekEnd = toDateStr(
+          new Date(
+            new Date().setDate(
+              new Date().getDate() + (6 - new Date().getDay()),
+            ),
+          ),
+        );
+        list = list.filter((t) => t.date >= weekStart && t.date <= weekEnd);
       }
-      if (filter === 'active')    list = list.filter((t) => !t.is_completed)
-      if (filter === 'completed') list = list.filter((t) => t.is_completed)
+      if (filter === "active") list = list.filter((t) => !t.is_completed);
+      if (filter === "completed") list = list.filter((t) => t.is_completed);
     }
     return [...list].sort((a, b) => {
       // Sort: active first, then by time, then by created_at
-      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1
-      if (a.time && b.time)  return a.time.localeCompare(b.time)
-      if (a.time && !b.time) return -1
-      if (!a.time && b.time) return 1
-      return a.created_at.localeCompare(b.created_at)
-    })
-  }, [tasks, filter, selectedDate, today])
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      if (a.time && b.time) return a.time.localeCompare(b.time);
+      if (a.time && !b.time) return -1;
+      if (!a.time && b.time) return 1;
+      return a.created_at.localeCompare(b.created_at);
+    });
+  }, [tasks, filter, selectedDate, today]);
 
-  const activeCount    = tasks.filter((t) => !t.is_completed).length
-  const completedCount = tasks.filter((t) => t.is_completed).length
 
-  const handleAdd = async (data: Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>) => {
-    setSaving(true)
-    await onAdd(data)
-    setSaving(false)
-    setDialogOpen(false)
-  }
+  const handleAdd = async (
+    data: Omit<Task, "id" | "user_id" | "created_at" | "is_completed">,
+  ) => {
+    setSaving(true);
+    await onAdd(data);
+    setSaving(false);
+    setDialogOpen(false);
+  };
 
-  const handleEdit = async (data: Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>) => {
-    if (!editingTask) return
-    setSaving(true)
-    await onEdit(editingTask.id, data)
-    setSaving(false)
-    setEditingTask(null)
-  }
+  const handleEdit = async (
+    data: Omit<Task, "id" | "user_id" | "created_at" | "is_completed">,
+  ) => {
+    if (!editingTask) return;
+    setSaving(true);
+    await onEdit(editingTask.id, data);
+    setSaving(false);
+    setEditingTask(null);
+  };
 
-  const openEdit = (task: Task) => setEditingTask(task)
+  const openEdit = (task: Task) => setEditingTask(task);
 
   return (
     <div className="flex flex-col h-full">
@@ -109,10 +122,10 @@ export default function TaskList({
                 key={value}
                 onClick={() => setFilter(value)}
                 className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  "px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500",
                   filter === value
-                    ? 'bg-blue-500 text-white'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                    ? "bg-blue-500 text-white"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
                 )}
               >
                 {label}
@@ -172,7 +185,10 @@ export default function TaskList({
       </Dialog>
 
       {/* Edit Task Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={(o) => !o && setEditingTask(null)}>
+      <Dialog
+        open={!!editingTask}
+        onOpenChange={(o) => !o && setEditingTask(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>ערוך משימה</DialogTitle>
@@ -188,5 +204,5 @@ export default function TaskList({
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -8,6 +8,7 @@ import EventModal from '@/components/layout/EventModal'
 import TutorialModal from '@/components/layout/TutorialModal'
 import CalendarView from '@/components/calendar/CalendarView'
 import TaskList from '@/components/tasks/TaskList'
+import AdminPanel from '@/components/admin/AdminPanel'
 import { useWeekSync } from '@/hooks/useWeekSync'
 import type { CalendarEvent, TabView } from '@/types'
 
@@ -130,6 +131,11 @@ export default function AppPage() {
           </div>
         )}
 
+        {activeTab === 'admin' && (
+          <div className="h-full overflow-hidden">
+            <AdminPanel />
+          </div>
+        )}
       </main>
 
       <TutorialModal
