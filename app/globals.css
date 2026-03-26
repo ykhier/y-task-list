@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 248 250 252;      /* #F8FAFC */
+    --foreground: 30 41 59;         /* #1E293B */
+    --card: 255 255 255;
+    --border: 226 232 240;          /* slate-200 */
+    --primary: 59 130 246;          /* #3B82F6 */
+    --primary-foreground: 255 255 255;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139; /* slate-500 */
+    --accent: 239 246 255;          /* blue-50 */
+    --ring: 59 130 246;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-[#F8FAFC] text-[#1E293B] antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  * {
+    @apply border-slate-200;
+    box-sizing: border-box;
+  }
+
+  /* Thin, clean scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Calendar-specific styles */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 56px repeat(7, 1fr);
+}
+
+.event-block {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.event-block:hover {
+  opacity: 0.9;
+  transform: scale(1.01);
+}
+
+/* Keyframe animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in { animation: fade-in 0.2s ease forwards; }
+.animate-slide-up { animation: slide-up 0.25s ease forwards; }
+
+/* Task completion animation */
+@keyframes strikethrough {
+  from { text-decoration-color: transparent; }
+  to   { text-decoration-color: currentColor; }
+}
+.task-done { animation: strikethrough 0.2s ease forwards; }
