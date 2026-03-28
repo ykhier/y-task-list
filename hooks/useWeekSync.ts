@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback } from 'react'
-import { defaultEndTime } from '@/lib/date'
 import { useTasks } from './useTasks'
 import { useEvents } from './useEvents'
 import { useTutorials } from './useTutorials'
@@ -54,12 +53,12 @@ export function useWeekSync() {
       if (!task) return
 
       // If task has time → auto-create event
-      if (task.time) {
+      if (task.time && task.end_time) {
         await addEvent({
           title:      task.title,
           date:       task.date,
           start_time: task.time,
-          end_time:   defaultEndTime(task.time),
+          end_time:   task.end_time,
           source:     'task',
           task_id:    task.id,
           color:      'green',
@@ -96,17 +95,18 @@ export function useWeekSync() {
       if (data.time !== undefined || data.title !== undefined || data.date !== undefined) {
         const existingEvent = events.find((e) => e.task_id === id)
         const newTime = data.time ?? original?.time
+        const newEndTime = data.end_time ?? original?.end_time
         const newTitle = data.title ?? original?.title ?? ''
         const newDate = data.date ?? original?.date ?? ''
 
-        if (newTime) {
+        if (newTime && newEndTime) {
           if (existingEvent) {
             // Update existing event
             await updateEvent(existingEvent.id, {
               title:      newTitle,
               date:       newDate,
               start_time: newTime,
-              end_time:   defaultEndTime(newTime),
+              end_time:   newEndTime,
             })
           } else {
             // Task now has a time — create new event
@@ -114,7 +114,7 @@ export function useWeekSync() {
               title:      newTitle,
               date:       newDate,
               start_time: newTime,
-              end_time:   defaultEndTime(newTime),
+              end_time:   newEndTime,
               source:     'task',
               task_id:    id,
               color:      'green',

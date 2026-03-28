@@ -19,7 +19,8 @@ export interface Task {
   title: string
   description?: string | null
   date: string          // YYYY-MM-DD
-  time?: string | null  // HH:MM (24h)
+  time?: string | null      // HH:MM (24h) start
+  end_time?: string | null  // HH:MM (24h) end
   is_completed: boolean
   created_at: string
 }

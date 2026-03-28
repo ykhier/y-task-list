@@ -27,7 +27,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
   return (
     <div
       className={cn(
-        'group flex items-start gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 transition-all duration-150 animate-fade-in',
+        'group flex items-center gap-3 px-4 py-3.5 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 animate-fade-in mx-3 my-1.5',
         isDeleting && 'opacity-0 scale-95'
       )}
     >
@@ -61,11 +61,11 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
           </p>
         )}
 
-        {task.time && (
+        {task.time && task.end_time && (
           <div className="mt-1 flex items-center gap-1">
             <Clock className="h-3 w-3 text-blue-400 flex-shrink-0" />
             <span className="text-xs text-blue-500 font-medium">
-              {formatTime12(task.time)}
+              {formatTime12(task.time)} – {formatTime12(task.end_time)}
             </span>
             <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-1">
               בלוח שנה

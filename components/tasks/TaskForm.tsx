@@ -41,12 +41,13 @@ function timeToMinutes(time: string): number {
 function findConflict(
   date: string,
   startTime: string,
+  endTime: string,
   events: CalendarEvent[],
   tasks: Task[],
   excludeTaskId?: string,
 ): string | null {
   const start = timeToMinutes(startTime);
-  const end = start + 60; // default 1hr block
+  const end = timeToMinutes(endTime);
 
   for (const ev of events) {
     if (ev.date !== date) continue;
@@ -59,11 +60,11 @@ function findConflict(
 
   for (const task of tasks) {
     if (task.id === excludeTaskId) continue;
-    if (task.date !== date || !task.time) continue;
+    if (task.date !== date || !task.time || !task.end_time) continue;
     const taskStart = timeToMinutes(task.time);
-    const taskEnd = taskStart + 60;
+    const taskEnd = timeToMinutes(task.end_time);
     if (start < taskEnd && end > taskStart) {
-      return `חופף עם המשימה "${task.title}" (${task.time})`;
+      return `חופף עם המשימה "${task.title}" (${task.time}–${task.end_time})`;
     }
   }
 
@@ -102,6 +103,7 @@ export default function TaskForm({
   const [description, setDescription] = useState(editTask?.description ?? "");
   const [dayIndex, setDayIndex] = useState<number>(initDay);
   const [time, setTime] = useState(editTask?.time ?? "");
+  const [endTime, setEndTime] = useState(editTask?.end_time ?? "");
   const [conflict, setConflict] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,30 +112,32 @@ export default function TaskForm({
       setDescription(editTask.description ?? "");
       setDayIndex(new Date(editTask.date + "T00:00:00").getDay());
       setTime(editTask.time ?? "");
+      setEndTime(editTask.end_time ?? "");
     }
   }, [editTask]);
 
   // Live conflict check
   useEffect(() => {
-    if (!time) {
+    if (!time || !endTime) {
       setConflict(null);
       return;
     }
     const date = getDateForWeekday(dayIndex);
-    const result = findConflict(date, time, events, tasks, editTask?.id);
+    const result = findConflict(date, time, endTime, events, tasks, editTask?.id);
     setConflict(result);
-  }, [dayIndex, time, events, tasks, editTask?.id]);
+  }, [dayIndex, time, endTime, events, tasks, editTask?.id]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !time || !endTime) return;
     if (conflict) return;
     const date = getDateForWeekday(dayIndex);
     onSubmit({
       title: title.trim(),
       description: description.trim() || null,
       date,
-      time: time || null,
+      time,
+      end_time: endTime,
     });
   };
 
@@ -182,18 +186,31 @@ export default function TaskForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="task-time">
-          שעה
+        <Label>
+          שעות *
           <span className="ms-1 text-xs text-slate-400 font-normal">
             (מוסיף ללוח שנה)
           </span>
         </Label>
-        <Input
-          id="task-time"
-          type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            id="task-time"
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            required
+            className="flex-1"
+          />
+          <span className="text-slate-400 text-sm flex-shrink-0">עד</span>
+          <Input
+            id="task-end-time"
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            required
+            className="flex-1"
+          />
+        </div>
       </div>
 
       {conflict && (
@@ -213,7 +230,7 @@ export default function TaskForm({
         </Button>
         <Button
           type="submit"
-          disabled={isLoading || !title.trim() || !!conflict}
+          disabled={isLoading || !title.trim() || !time || !endTime || !!conflict}
         >
           {isLoading ? "שומר..." : editTask ? "שמור שינויים" : "הוסף משימה"}
         </Button>

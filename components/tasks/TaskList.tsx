@@ -152,7 +152,7 @@ export default function TaskList({
             <p className="text-xs text-slate-400 mt-1">הוסף כדי להתחיל</p>
           </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="flex flex-col">
             {filtered.map((task) => (
               <li key={task.id}>
                 <TaskItem
