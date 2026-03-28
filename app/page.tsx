@@ -9,7 +9,6 @@ import TutorialModal from '@/components/layout/TutorialModal'
 import CalendarView from '@/components/calendar/CalendarView'
 import TaskList from '@/components/tasks/TaskList'
 import { useWeekSync } from '@/hooks/useWeekSync'
-import { timeToMinutes } from '@/lib/date'
 import type { CalendarEvent, TabView } from '@/types'
 
 export default function AppPage() {
