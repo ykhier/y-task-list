@@ -13,6 +13,15 @@ interface CalendarViewProps {
   tasks: Task[]
   onEventClick?: (event: CalendarEvent) => void
   onAddEvent?: (dateStr: string, hour?: number) => void
+  onEventDrop?: (
+    eventId: string,
+    isTutorial: boolean,
+    isTaskEvent: boolean,
+    taskId: string | null,
+    newDate: string,
+    newStartTime: string,
+    newEndTime: string,
+  ) => void
 }
 
 const TIME_LABELS = HOURS.map((h) => `${String(h).padStart(2, '0')}:00`)
@@ -22,6 +31,7 @@ export default function CalendarView({
   tasks,
   onEventClick,
   onAddEvent,
+  onEventDrop,
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -119,6 +129,7 @@ export default function CalendarView({
               completedTaskIds={completedTaskIds}
               onEventClick={onEventClick}
               onSlotClick={handleSlotClick}
+              onEventDrop={onEventDrop}
             />
           ))}
         </div>

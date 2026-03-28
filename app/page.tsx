@@ -2,14 +2,14 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import EventModal from '@/components/layout/EventModal'
 import TutorialModal from '@/components/layout/TutorialModal'
 import CalendarView from '@/components/calendar/CalendarView'
 import TaskList from '@/components/tasks/TaskList'
-import AdminPanel from '@/components/admin/AdminPanel'
 import { useWeekSync } from '@/hooks/useWeekSync'
+import { timeToMinutes } from '@/lib/date'
 import type { CalendarEvent, TabView } from '@/types'
 
 export default function AppPage() {
@@ -43,6 +43,51 @@ export default function AppPage() {
         startTime < ev.end_time &&
         endTime > ev.start_time
     )
+
+  const handleEventDrop = useCallback(async (
+    eventId: string,
+    isTutorial: boolean,
+    isTaskEvent: boolean,
+    taskId: string | null,
+    newDate: string,
+    newStartTime: string,
+    newEndTime: string,
+  ) => {
+    if (isTutorial) {
+      // Check overlap against other tutorials on that day
+      const conflict = tutorials.some(t =>
+        t.id !== eventId && t.date === newDate &&
+        newStartTime < t.end_time && newEndTime > t.start_time
+      )
+      if (conflict) return
+      await updateTutorial(eventId, { date: newDate, start_time: newStartTime, end_time: newEndTime })
+      return
+    }
+
+    if (isTaskEvent && taskId) {
+      // Check overlap against other sessions on that day
+      const conflict = events.some(e =>
+        e.id !== eventId && e.date === newDate &&
+        newStartTime < e.end_time && newEndTime > e.start_time
+      )
+      if (conflict) return
+      // Update the task; useWeekSync cascades to the linked event
+      await updateTask(taskId, { date: newDate, time: newStartTime })
+      return
+    }
+
+    // Manual lecture
+    const event = events.find(e => e.id === eventId)
+    if (!event) return
+
+    const conflict = events.some(e =>
+      e.id !== eventId && e.date === newDate &&
+      newStartTime < e.end_time && newEndTime > e.start_time
+    )
+    if (conflict) return
+
+    await updateEvent(eventId, { date: newDate, start_time: newStartTime, end_time: newEndTime })
+  }, [events, tutorials, updateEvent, updateTutorial, updateTask])
 
   const openAddEvent = (dateStr: string, hour?: number) => {
     setEditingEvent(null)
@@ -89,7 +134,7 @@ export default function AppPage() {
             date:       tutorial.date,
             start_time: tutorial.start_time,
             end_time:   tutorial.end_time,
-            color:      tutorial.color,
+            color:      data.color,
           })
         }
       }
@@ -113,6 +158,7 @@ export default function AppPage() {
               tasks={tasks}
               onEventClick={openEditEvent}
               onAddEvent={openAddEvent}
+              onEventDrop={handleEventDrop}
             />
           </div>
         )}
@@ -131,11 +177,6 @@ export default function AppPage() {
           </div>
         )}
 
-        {activeTab === 'admin' && (
-          <div className="h-full overflow-hidden">
-            <AdminPanel />
-          </div>
-        )}
       </main>
 
       <TutorialModal

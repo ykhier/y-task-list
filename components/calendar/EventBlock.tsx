@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { formatTime12, timeToOffset, timeRangeToHeight } from '@/lib/date'
+import { formatTime12, timeToOffset, timeRangeToHeight, timeToMinutes } from '@/lib/date'
 import { GRID_START_HOUR } from './DayColumn'
 import type { CalendarEvent } from '@/types'
 
@@ -26,6 +27,8 @@ export default function EventBlock({
   hourHeight = 60,
   onClick,
 }: EventBlockProps) {
+  const [isDragging, setIsDragging] = useState(false)
+
   const top    = timeToOffset(event.start_time, hourHeight) - GRID_START_HOUR * hourHeight
   const height = timeRangeToHeight(event.start_time, event.end_time, hourHeight)
   const colorKey = event.color ?? (event.source === 'task' ? 'green' : 'blue')
@@ -36,8 +39,27 @@ export default function EventBlock({
       role="button"
       tabIndex={0}
       aria-label={`${event.title} at ${formatTime12(event.start_time)}`}
+      draggable={!isCompleted}
       onClick={() => onClick?.(event)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(event) }}
+      onDragStart={(e) => {
+        if (isCompleted) { e.preventDefault(); return }
+        setIsDragging(true)
+        const rect = e.currentTarget.getBoundingClientRect()
+        const offsetY = e.clientY - rect.top
+        const durationMins = timeToMinutes(event.end_time) - timeToMinutes(event.start_time)
+        const offsetMins = Math.round((offsetY / hourHeight) * 60)
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('application/json', JSON.stringify({
+          eventId: event.id,
+          isTutorial: event.source === 'tutorial',
+          isTaskEvent: event.source === 'task',
+          taskId: event.task_id ?? null,
+          durationMins,
+          offsetMins,
+        }))
+      }}
+      onDragEnd={() => setIsDragging(false)}
       style={{ top, height: Math.max(height, 24), minHeight: 24 }}
       className={cn(
         'event-block border-l-2 select-none flex flex-col items-center justify-center text-center px-1',
@@ -45,7 +67,7 @@ export default function EventBlock({
         colors.text,
         colors.border,
         isCompleted && 'opacity-40 line-through',
-        'cursor-pointer'
+        isDragging ? 'opacity-40 cursor-grabbing' : 'cursor-grab'
       )}
     >
       <p className="font-bold text-xs sm:text-sm leading-tight w-full truncate">{event.title}</p>

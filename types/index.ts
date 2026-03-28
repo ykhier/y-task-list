@@ -45,6 +45,6 @@ export interface WeekDay {
   isToday: boolean
 }
 
-export type TabView = 'calendar' | 'tasks' | 'admin'
+export type TabView = 'calendar' | 'tasks'
 
 export type TaskFilter = 'all' | 'today' | 'week' | 'completed' | 'active'

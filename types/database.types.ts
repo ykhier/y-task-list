@@ -1,5 +1,6 @@
 export type Database = {
   public: {
+    PostgrestVersion: "12"
     Tables: {
       tasks: {
         Row: {
@@ -32,6 +33,7 @@ export type Database = {
           is_completed?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       sessions: {
         Row: {
@@ -41,7 +43,7 @@ export type Database = {
           date: string
           start_time: string
           end_time: string
-          source: string
+          source: 'manual' | 'task' | 'tutorial'
           task_id: string | null
           color: string | null
           created_at: string
@@ -53,7 +55,7 @@ export type Database = {
           date: string
           start_time: string
           end_time: string
-          source?: string
+          source?: 'manual' | 'task' | 'tutorial'
           task_id?: string | null
           color?: string | null
           created_at?: string
@@ -70,6 +72,7 @@ export type Database = {
           color?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       tutorials: {
         Row: {
@@ -105,10 +108,12 @@ export type Database = {
           color?: string | null
           created_at?: string
         }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: { [_ in never]: never }
+    Functions: { [_ in never]: never }
+    Enums: { [_ in never]: never }
+    CompositeTypes: { [_ in never]: never }
   }
 }

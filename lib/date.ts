@@ -84,4 +84,17 @@ export function currentTimeOffset(hourHeight = 60): number {
   return timeToOffset(nowTime(), hourHeight)
 }
 
+/** Convert "HH:MM" to total minutes from midnight */
+export function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
+}
+
+/** Convert total minutes from midnight to "HH:MM" */
+export function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 export { isToday }
