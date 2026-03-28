@@ -70,7 +70,7 @@ export default function EventBlock({
         isDragging ? 'opacity-40 cursor-grabbing' : 'cursor-grab'
       )}
     >
-      <p className="font-bold text-xs sm:text-sm leading-tight w-full truncate">{event.title}</p>
+      <p className="font-bold text-xs sm:text-sm leading-tight w-full text-center break-words whitespace-normal">{event.title}</p>
       {height >= 36 && (
         <p className="text-[10px] sm:text-xs opacity-70 mt-0.5 font-medium">
           {formatTime12(event.start_time)} – {formatTime12(event.end_time)}
