@@ -10,8 +10,14 @@ import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
 } from '@/components/ui/select'
+import {
+  HebrewSelectContent,
+  HebrewSelectItem,
+  HebrewSelectTrigger,
+  HebrewSelectValue,
+} from '@/components/ui/hebrew-select'
 import { toDateStr } from '@/lib/date'
 import type { CalendarEvent } from '@/types'
 
@@ -96,12 +102,12 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
           <div className="flex flex-col gap-1.5">
             <Label>יום</Label>
             <Select value={String(dayIndex)} onValueChange={(v) => setDayIndex(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
+              <HebrewSelectContent>
                 {DAY_OPTIONS.map((d) => (
-                  <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                  <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
                 ))}
-              </SelectContent>
+              </HebrewSelectContent>
             </Select>
           </div>
 

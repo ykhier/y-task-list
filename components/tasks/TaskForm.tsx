@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import {
+  HebrewSelectContent,
+  HebrewSelectItem,
+  HebrewSelectTrigger,
+  HebrewSelectValue,
+} from "@/components/ui/hebrew-select";
 import { toDateStr } from "@/lib/date";
 import type { Task, CalendarEvent } from "@/types";
 
@@ -185,16 +187,16 @@ export default function TaskForm({
           value={String(dayIndex)}
           onValueChange={(v) => setDayIndex(Number(v))}
         >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
+          <HebrewSelectTrigger>
+            <HebrewSelectValue />
+          </HebrewSelectTrigger>
+          <HebrewSelectContent>
             {DAY_OPTIONS.map((d) => (
-              <SelectItem key={d.value} value={String(d.value)}>
+              <HebrewSelectItem key={d.value} value={String(d.value)}>
                 {d.label}
-              </SelectItem>
+              </HebrewSelectItem>
             ))}
-          </SelectContent>
+          </HebrewSelectContent>
         </Select>
       </div>
 

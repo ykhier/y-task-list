@@ -14,11 +14,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2 } from 'lucide-react'
 import {
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
+import {
+  HebrewSelectContent,
+  HebrewSelectItem,
+  HebrewSelectTrigger,
+  HebrewSelectValue,
+} from '@/components/ui/hebrew-select'
 import { defaultEndTime, toDateStr } from '@/lib/date'
 import type { CalendarEvent } from '@/types'
 
@@ -199,12 +201,12 @@ export default function EventModal({
           <div className="flex flex-col gap-1.5">
             <Label>יום</Label>
             <Select value={String(dayIndex)} onValueChange={handleDayChange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
+              <HebrewSelectContent>
                 {DAY_OPTIONS.map((d) => (
-                  <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                  <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
                 ))}
-              </SelectContent>
+              </HebrewSelectContent>
             </Select>
           </div>
 
@@ -224,12 +226,12 @@ export default function EventModal({
           <div className="flex flex-col gap-1.5">
             <Label>צבע</Label>
             <Select value={color} onValueChange={setColor}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
+              <HebrewSelectContent>
                 {COLOR_OPTIONS.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  <HebrewSelectItem key={c.value} value={c.value}>{c.label}</HebrewSelectItem>
                 ))}
-              </SelectContent>
+              </HebrewSelectContent>
             </Select>
           </div>
 
@@ -266,12 +268,12 @@ export default function EventModal({
                       value={String(tutorialDayIndex)}
                       onValueChange={(v) => setTutorialDayIndex(Number(v))}
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
+                      <HebrewSelectContent>
                         {DAY_OPTIONS.map((d) => (
-                          <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                          <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
                         ))}
-                      </SelectContent>
+                      </HebrewSelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
