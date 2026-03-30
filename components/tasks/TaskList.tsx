@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Plus, SlidersHorizontal, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, CheckCircle2 } from "lucide-react";
 import TaskItem from "./TaskItem";
 import {
   Dialog,
@@ -128,28 +127,33 @@ export default function TaskList({
     <div className="flex flex-col h-full">
       {/* Filters + Add button */}
       {!selectedDate && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-white flex-shrink-0 overflow-x-auto">
-          <div className="flex items-center gap-1">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 ml-1" />
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 bg-white flex-shrink-0">
+          {/* Scrollable filter pills */}
+          <div className="flex-1 flex items-center gap-1 min-w-0">
             {FILTERS.map(({ label, value }) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
                 className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500",
+                  "flex-1 px-1.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer min-h-[34px] focus:outline-none focus:ring-2 focus:ring-blue-500",
                   filter === value
-                    ? "bg-blue-500 text-white"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
+                    ? "bg-blue-500 text-white shadow-sm shadow-blue-200"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700",
                 )}
               >
                 {label}
               </button>
             ))}
           </div>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-3.5 w-3.5" />
-            הוסף משימה
-          </Button>
+
+          {/* Add button — icon-only on mobile, with label on desktop */}
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="flex-shrink-0 flex items-center gap-1.5 min-h-[44px] sm:min-h-[34px] px-3 sm:px-3.5 rounded-full bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-xs font-semibold shadow-sm shadow-blue-200 transition-all duration-150 cursor-pointer"
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">הוסף משימה</span>
+          </button>
         </div>
       )}
 

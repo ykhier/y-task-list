@@ -84,12 +84,12 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
         )}
       </div>
 
-      {/* Actions — reveal on hover */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 flex-shrink-0">
+      {/* Actions — always visible on touch devices, reveal on hover on desktop */}
+      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-400 hover:text-slate-600"
+          className="h-9 w-9 sm:h-7 sm:w-7 text-slate-400 hover:text-slate-600"
           onClick={() => onEdit(task)}
           aria-label="Edit task"
         >
@@ -98,7 +98,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-400 hover:text-red-500"
+          className="h-9 w-9 sm:h-7 sm:w-7 text-slate-400 hover:text-red-500"
           onClick={handleDelete}
           aria-label="Delete task"
         >

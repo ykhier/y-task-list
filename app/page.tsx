@@ -264,7 +264,7 @@ export default function AppPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#F8FAFC]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F8FAFC]">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="flex-1 overflow-hidden">

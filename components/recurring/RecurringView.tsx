@@ -225,6 +225,10 @@ export default function RecurringView({
         </div>
       ) : (
         <>
+          {/* Calendar body: single horizontal-scroll zone keeps headers + grid in sync */}
+          <div className="flex-1 overflow-x-auto overflow-y-hidden">
+          <div className="flex flex-col h-full" style={{ minWidth: '480px' }}>
+
           {/* Day header */}
           <div
             className="grid flex-shrink-0 bg-white border-b border-slate-100"
@@ -358,6 +362,8 @@ export default function RecurringView({
                 </div>
               ))}
             </div>
+          </div>
+          </div>
           </div>
         </>
       )}

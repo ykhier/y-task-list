@@ -23,6 +23,8 @@
   body {
     @apply bg-[#F8FAFC] text-[#1E293B] antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    touch-action: manipulation;        /* Remove 300ms tap delay on mobile */
+    overscroll-behavior: contain;      /* Prevent accidental pull-to-refresh */
   }
 
   * {
@@ -39,6 +41,15 @@
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Respect user motion preferences */

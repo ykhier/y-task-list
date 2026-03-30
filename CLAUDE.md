@@ -23,7 +23,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
 ## Architecture
 
-**WeekFlow** is a Next.js 15 / React 19 weekly planner with a calendar + tasks + analytics UI backed by Supabase. The app is RTL (Hebrew, `lang="he" dir="rtl"`).
+**WeekFlow** is a Next.js 15 / React 19 weekly planner with three tabs — **calendar**, **tasks**, and **recurring** — backed by Supabase. The app is RTL (Hebrew, `lang="he" dir="rtl"`).
 
 ### Data flow
 
@@ -40,7 +40,7 @@ All state lives in hooks composed at the root page ([app/page.tsx](app/page.tsx)
 
 ### Auth
 
-`SupabaseProvider` wraps the whole app and exposes the current user via `useSupabaseUser()`. There is no login flow: it tries a real Supabase session first, then calls `signInAnonymously()`. **Anonymous sign-in must be enabled in Supabase dashboard: Authentication → Providers → Anonymous.** All Supabase queries filter by `user_id` and RLS policies enforce this server-side.
+`SupabaseProvider` wraps the whole app and exposes the current user via `useSupabaseUser()`. It tries a real Supabase session first, then calls `signInAnonymously()` — the actual working auth path. The `/login` and `/signup` routes exist as UI stubs but are not yet wired to Supabase. **Anonymous sign-in must be enabled in Supabase dashboard: Authentication → Providers → Anonymous.** All Supabase queries filter by `user_id` and RLS policies enforce this server-side.
 
 ### Database
 
@@ -59,7 +59,8 @@ Realtime must be enabled in the Supabase dashboard: **Database → Replication �
 app/page.tsx          — single-page app root; owns all state via useWeekSync
 components/
   calendar/           — CalendarView (week grid), DayColumn, EventBlock
-  layout/             — Navbar (tab switcher), EventModal, AnalyticsSummary
+  recurring/          — RecurringView: weekly grid deduplicating recurring items by title+day+time pattern
+  layout/             — Navbar (tab switcher), EventModal, TutorialModal, AnalyticsSummary
   tasks/              — TaskList, TaskItem, TaskForm
   providers/          — SupabaseProvider
   ui/                 — shadcn/ui primitives (badge, button, dialog, etc.)
@@ -75,6 +76,10 @@ lib/
   utils.ts            — cn() tailwind utility
 types/index.ts        — Task, CalendarEvent, Tutorial, WeekDay, TabView, TaskFilter, EventSource
 ```
+
+### Recurring tab
+
+`RecurringView` shows a static weekly grid (Sunday–Saturday, 08:00–23:00) of all items flagged `is_recurring`. It deduplicates across weeks by grouping on `title + dayOfWeek + time`, so the same recurring event on multiple dates appears as one block. Tasks without a time appear as chips above the grid. Clicking a block selects it and shows edit/delete actions.
 
 ### Styling
 
