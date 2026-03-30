@@ -17,11 +17,13 @@ create table if not exists public.tasks (
   description  text,
   date         date not null,
   time         time,
+  end_time     time,
+  is_recurring boolean not null default false,
   is_completed boolean not null default false,
   created_at   timestamptz not null default now()
 );
 
--- ── SESSIONS (lectures + tutorials) ──────────────────────────
+-- SESSIONS (lectures + tutorials) ──────────────────────────
 create table if not exists public.sessions (
   id           uuid primary key default uuid_generate_v4(),
   user_id      uuid not null references auth.users(id) on delete cascade,
@@ -32,6 +34,7 @@ create table if not exists public.sessions (
   source       text not null check (source in ('manual', 'task')) default 'manual',
   task_id      uuid references public.tasks(id) on delete cascade,
   color        text default 'blue',
+  is_recurring boolean not null default false,
   created_at   timestamptz not null default now()
 );
 
@@ -45,15 +48,19 @@ create table if not exists public.tutorials (
   start_time   time not null,
   end_time     time not null,
   color        text default 'orange',
+  is_recurring boolean not null default false,
   created_at   timestamptz not null default now()
 );
 
 -- ── INDEXES ──────────────────────────────────────────────────
-create index if not exists tasks_user_date      on public.tasks(user_id, date);
-create index if not exists sessions_user_date  on public.sessions(user_id, date);
-create index if not exists sessions_task_id    on public.sessions(task_id);
-create index if not exists tutorials_user_date on public.tutorials(user_id, date);
-create index if not exists tutorials_session   on public.tutorials(session_id);
+create index if not exists tasks_user_date           on public.tasks(user_id, date);
+create index if not exists tasks_user_recurring      on public.tasks(user_id, is_recurring) where is_recurring = true;
+create index if not exists sessions_user_date        on public.sessions(user_id, date);
+create index if not exists sessions_user_recurring   on public.sessions(user_id, is_recurring) where is_recurring = true;
+create index if not exists sessions_task_id          on public.sessions(task_id);
+create index if not exists tutorials_user_date       on public.tutorials(user_id, date);
+create index if not exists tutorials_user_recurring  on public.tutorials(user_id, is_recurring) where is_recurring = true;
+create index if not exists tutorials_session         on public.tutorials(session_id);
 
 -- ── ROW LEVEL SECURITY ───────────────────────────────────────
 alter table public.tasks      enable row level security;
@@ -74,6 +81,10 @@ create policy "tutorials: own rows"
   on public.tutorials for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ── MIGRATION: add is_recurring (run if upgrading) ──────────
+-- ALTER TABLE public.sessions  ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
+-- ALTER TABLE public.tutorials ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
 
 -- ── REALTIME ─────────────────────────────────────────────────
 -- Enable realtime in Supabase dashboard:

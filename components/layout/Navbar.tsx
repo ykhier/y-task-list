@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarDays, ListTodo } from 'lucide-react'
+import { CalendarDays, ListTodo, Repeat2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TabView } from '@/types'
 
@@ -10,8 +10,9 @@ interface NavbarProps {
 }
 
 const TABS: { label: string; value: TabView; Icon: React.ElementType }[] = [
-  { label: 'לוח שבועי', value: 'calendar', Icon: CalendarDays },
-  { label: 'משימות',   value: 'tasks',    Icon: ListTodo },
+  { label: 'לוח שבועי', value: 'calendar',  Icon: CalendarDays },
+  { label: 'משימות',   value: 'tasks',     Icon: ListTodo },
+  { label: 'קבועות',   value: 'recurring', Icon: Repeat2 },
 ]
 
 export default function Navbar({ activeTab, onTabChange }: NavbarProps) {

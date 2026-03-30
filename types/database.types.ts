@@ -11,6 +11,7 @@ export type Database = {
           date: string
           time: string | null
           end_time: string | null
+          is_recurring: boolean
           is_completed: boolean
           created_at: string
         }
@@ -22,6 +23,7 @@ export type Database = {
           date: string
           time?: string | null
           end_time?: string | null
+          is_recurring?: boolean
           is_completed?: boolean
           created_at?: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           date?: string
           time?: string | null
           end_time?: string | null
+          is_recurring?: boolean
           is_completed?: boolean
           created_at?: string
         }
@@ -49,6 +52,7 @@ export type Database = {
           source: 'manual' | 'task' | 'tutorial'
           task_id: string | null
           color: string | null
+          is_recurring: boolean
           created_at: string
         }
         Insert: {
@@ -61,6 +65,7 @@ export type Database = {
           source?: 'manual' | 'task' | 'tutorial'
           task_id?: string | null
           color?: string | null
+          is_recurring?: boolean
           created_at?: string
         }
         Update: {
@@ -73,6 +78,7 @@ export type Database = {
           source?: string
           task_id?: string | null
           color?: string | null
+          is_recurring?: boolean
           created_at?: string
         }
         Relationships: []
@@ -87,6 +93,7 @@ export type Database = {
           start_time: string
           end_time: string
           color: string | null
+          is_recurring: boolean
           created_at: string
         }
         Insert: {
@@ -98,6 +105,7 @@ export type Database = {
           start_time: string
           end_time: string
           color?: string | null
+          is_recurring?: boolean
           created_at?: string
         }
         Update: {
@@ -109,6 +117,7 @@ export type Database = {
           start_time?: string
           end_time?: string
           color?: string | null
+          is_recurring?: boolean
           created_at?: string
         }
         Relationships: []

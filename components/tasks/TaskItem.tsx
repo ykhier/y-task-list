@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Clock, FileText, Pencil } from 'lucide-react'
+import { Trash2, Clock, FileText, Pencil, Repeat2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -61,15 +61,25 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
           </p>
         )}
 
-        {task.time && task.end_time && (
-          <div className="mt-1 flex items-center gap-1">
-            <Clock className="h-3 w-3 text-blue-400 flex-shrink-0" />
-            <span className="text-xs text-blue-500 font-medium">
-              {formatTime12(task.time)} – {formatTime12(task.end_time)}
-            </span>
-            <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-1">
-              בלוח שנה
-            </Badge>
+        {(task.time && task.end_time || task.is_recurring) && (
+          <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5">
+            {task.time && task.end_time && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                <span className="text-xs text-blue-500 font-medium">
+                  {formatTime12(task.time)} – {formatTime12(task.end_time)}
+                </span>
+                <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                  בלוח שנה
+                </Badge>
+              </div>
+            )}
+            {task.is_recurring && (
+              <div className="flex items-center gap-1">
+                <Repeat2 className="h-3 w-3 text-violet-400 flex-shrink-0" />
+                <span className="text-xs text-violet-500 font-medium">חוזר כל שבוע</span>
+              </div>
+            )}
           </div>
         )}
       </div>

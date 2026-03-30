@@ -10,9 +10,10 @@ export interface Tutorial {
   start_time: string
   end_time: string
   color?: string | null
+  is_recurring?: boolean
   created_at: string
 }
-
+//tasks have optional time, but calendar events must have time. When a task with time is created, it can be converted to a calendar event.
 export interface Task {
   id: string
   user_id: string
@@ -21,6 +22,7 @@ export interface Task {
   date: string          // YYYY-MM-DD
   time?: string | null      // HH:MM (24h) start
   end_time?: string | null  // HH:MM (24h) end
+  is_recurring?: boolean
   is_completed: boolean
   created_at: string
 }
@@ -35,6 +37,7 @@ export interface CalendarEvent {
   source: EventSource
   task_id?: string | null
   color?: string | null
+  is_recurring?: boolean
   created_at: string
 }
 
@@ -46,6 +49,6 @@ export interface WeekDay {
   isToday: boolean
 }
 
-export type TabView = 'calendar' | 'tasks'
+export type TabView = 'calendar' | 'tasks' | 'recurring'
 
 export type TaskFilter = 'all' | 'today' | 'week' | 'completed' | 'active'

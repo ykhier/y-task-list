@@ -15,23 +15,25 @@ export function useTutorials() {
   const supabase = createClient()
   const user = useSupabaseUser()
 
-  // Initial fetch — runs once per user session
-  useEffect(() => {
+  const fetchTutorials = useCallback(async () => {
     if (!user) return
-
-    let cancelled = false
-
-    supabase
+    const { data, error } = await supabase
       .from('tutorials')
       .select('*')
       .eq('user_id', user.id)
       .order('start_time', { ascending: true })
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) setError(error.message)
-        else setTutorials(data ?? [])
-        setLoading(false)
-      })
+    if (error) { setError(error.message); setLoading(false); return }
+
+    setTutorials(data ?? [])
+    setLoading(false)
+  }, [user])
+
+  // Initial fetch + realtime subscription
+  useEffect(() => {
+    if (!user) return
+
+    let cancelled = false
+    fetchTutorials().then(() => { if (cancelled) setTutorials([]) })
 
     // Realtime — update local state from payload instead of re-fetching
     const channel = supabase
@@ -61,7 +63,7 @@ export function useTutorials() {
       cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user, fetchTutorials])
 
   // Optimistic add — updates state immediately, rolls back on error
   const addTutorial = useCallback(async (data: NewTutorial): Promise<Tutorial | null> => {
@@ -103,6 +105,18 @@ export function useTutorials() {
     }
   }, [])
 
+  const addTutorialsBatch = useCallback(async (items: NewTutorial[]): Promise<Tutorial[]> => {
+    if (!user || items.length === 0) return []
+    const { data, error } = await supabase
+      .from('tutorials')
+      .insert(items.map((item) => ({ ...item, user_id: user.id })))
+      .select()
+    if (error) { setError(error.message); return [] }
+    const saved = data ?? []
+    setTutorials((prev) => [...prev, ...saved])
+    return saved
+  }, [user])
+
   // Optimistic delete — removes immediately, rolls back on error
   const deleteTutorial = useCallback(async (id: string) => {
     setTutorials((prev) => prev.filter((t) => t.id !== id))
@@ -118,5 +132,5 @@ export function useTutorials() {
     await supabase.from('tutorials').delete().eq('session_id', sessionId)
   }, [])
 
-  return { tutorials, loading, error, addTutorial, updateTutorial, deleteTutorial, deleteTutorialBySessionId }
+  return { tutorials, loading, error, addTutorial, addTutorialsBatch, updateTutorial, deleteTutorial, deleteTutorialBySessionId }
 }

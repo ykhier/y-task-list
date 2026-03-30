@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Repeat2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime12, timeToOffset, timeRangeToHeight, timeToMinutes } from '@/lib/date'
 import { GRID_START_HOUR } from './DayColumn'
@@ -62,7 +63,7 @@ export default function EventBlock({
       onDragEnd={() => setIsDragging(false)}
       style={{ top, height: Math.max(height, 24), minHeight: 24 }}
       className={cn(
-        'event-block border-l-2 select-none flex flex-col items-center justify-center text-center px-1',
+        'event-block relative border-l-2 select-none flex flex-col items-center justify-center text-center px-1',
         colors.bg,
         colors.text,
         colors.border,
@@ -70,7 +71,10 @@ export default function EventBlock({
         isDragging ? 'opacity-40 cursor-grabbing' : 'cursor-grab'
       )}
     >
-      <p className="font-bold text-xs sm:text-sm leading-tight w-full text-center break-words whitespace-normal">{event.title}</p>
+      {event.is_recurring && (
+        <Repeat2 className="absolute top-1 left-1 h-3 w-3 opacity-60" />
+      )}
+      <p className="font-bold text-xs sm:text-sm leading-tight text-center break-words whitespace-normal w-full">{event.title}</p>
       {height >= 36 && (
         <p className="text-[10px] sm:text-xs opacity-70 mt-0.5 font-medium">
           {formatTime12(event.start_time)} – {formatTime12(event.end_time)}

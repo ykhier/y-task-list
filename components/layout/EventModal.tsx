@@ -63,6 +63,7 @@ interface EventModalProps {
   onSubmit: (data: EventData, tutorial?: EventData) => Promise<void>
   onDelete?: (id: string) => Promise<void>
   error?: string | null
+  suggestion?: string | null
   isLoading?: boolean
 }
 
@@ -72,6 +73,7 @@ export default function EventModal({
   initialDate,
   initialHour,
   editEvent,
+  suggestion,
   onSubmit,
   onDelete,
   error,
@@ -90,10 +92,13 @@ export default function EventModal({
   const [endTime, setEndTime]     = useState(editEvent?.end_time ?? defaultEndTime(defaultStart))
   const [color, setColor]         = useState(editEvent?.color ?? 'blue')
 
-  const [tutorialEnabled, setTutorialEnabled]   = useState(false)
-  const [tutorialDayIndex, setTutorialDayIndex] = useState<number>(new Date().getDay())
-  const [tutorialStart, setTutorialStart]       = useState('11:00')
-  const [tutorialEnd, setTutorialEnd]           = useState('12:00')
+  const [isRecurring, setIsRecurring]           = useState(editEvent?.is_recurring ?? false)
+
+  const [tutorialEnabled, setTutorialEnabled]         = useState(false)
+  const [tutorialDayIndex, setTutorialDayIndex]       = useState<number>(new Date().getDay())
+  const [tutorialStart, setTutorialStart]             = useState('11:00')
+  const [tutorialEnd, setTutorialEnd]                 = useState('12:00')
+  const [tutorialIsRecurring, setTutorialIsRecurring] = useState(false)
 
   useEffect(() => {
     if (editEvent) {
@@ -102,6 +107,7 @@ export default function EventModal({
       setStartTime(editEvent.start_time)
       setEndTime(editEvent.end_time)
       setColor(editEvent.color ?? 'blue')
+      setIsRecurring(editEvent.is_recurring ?? false)
     } else {
       const s = initialHour != null ? `${pad(initialHour)}:00` : '09:00'
       const initDay = initialDate ? getDayIndexFromDate(initialDate) : new Date().getDay()
@@ -113,8 +119,10 @@ export default function EventModal({
       setTutorialDayIndex(initDay)
       setTutorialStart(end)
       setTutorialEnd(defaultEndTime(end))
+      setIsRecurring(false)
     }
     setTutorialEnabled(false)
+    setTutorialIsRecurring(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editEvent, initialDate, initialHour, open])
 
@@ -140,25 +148,27 @@ export default function EventModal({
     const date = getDateForWeekday(dayIndex)
 
     const lectureData: EventData = {
-      title:      title.trim(),
+      title:        title.trim(),
       date,
-      start_time: startTime,
-      end_time:   endTime,
-      source:     'manual',
-      task_id:    null,
+      start_time:   startTime,
+      end_time:     endTime,
+      source:       'manual',
+      task_id:      null,
       color,
+      is_recurring: isRecurring,
     }
 
     const tutorialData: EventData | undefined =
       tutorialEnabled && !editEvent
         ? {
-            title:      `תרגול – ${title.trim()}`,
-            date:       getDateForWeekday(tutorialDayIndex),
-            start_time: tutorialStart,
-            end_time:   tutorialEnd,
-            source:     'manual',
-            task_id:    null,
-            color:      'orange',
+            title:        `תרגול – ${title.trim()}`,
+            date:         getDateForWeekday(tutorialDayIndex),
+            start_time:   tutorialStart,
+            end_time:     tutorialEnd,
+            source:       'manual',
+            task_id:      null,
+            color:        'orange',
+            is_recurring: tutorialIsRecurring,
           }
         : undefined
 
@@ -223,6 +233,17 @@ export default function EventModal({
             </Select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="lecture-recurring"
+              checked={isRecurring}
+              onCheckedChange={(v) => setIsRecurring(!!v)}
+            />
+            <Label htmlFor="lecture-recurring" className="cursor-pointer">
+              קבוע כל שבוע
+            </Label>
+          </div>
+
           {/* Tutorial section — only on create */}
           {!editEvent && (
             <div className="flex flex-col gap-3 border border-slate-200 rounded-lg p-3 bg-slate-50">
@@ -273,8 +294,26 @@ export default function EventModal({
                         onChange={(e) => setTutorialEnd(e.target.value)} required />
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="tutorial-recurring"
+                      checked={tutorialIsRecurring}
+                      onCheckedChange={(v) => setTutorialIsRecurring(!!v)}
+                    />
+                    <Label htmlFor="tutorial-recurring" className="cursor-pointer">
+                      קבוע כל שבוע
+                    </Label>
+                  </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {suggestion && (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 flex flex-col gap-1">
+              <p className="font-semibold">שים לב — קיים תוכן קבוע מהשבוע הקודם</p>
+              <p>{suggestion}</p>
+              <p className="text-xs text-amber-600">{'לחץ "המשך בכל זאת" כדי להוסיף ידנית, או סגור ולחץ "צרף קבועות".'}</p>
             </div>
           )}
 
@@ -301,7 +340,7 @@ export default function EventModal({
                 ביטול
               </Button>
               <Button type="submit" disabled={isLoading || !title.trim()}>
-                {isLoading ? 'שומר...' : editEvent ? 'שמור שינויים' : 'צור הרצאה'}
+                {isLoading ? 'שומר...' : suggestion ? 'המשך בכל זאת' : editEvent ? 'שמור שינויים' : 'צור הרצאה'}
               </Button>
             </div>
           </div>

@@ -18,31 +18,32 @@ import type { Task, CalendarEvent, Tutorial } from '@/types'
 export function useWeekSync() {
   const {
     tasks, loading: tasksLoading, error: tasksError,
-    addTask, toggleTask, deleteTask, updateTask,
+    addTask, addTasksBatch, toggleTask, deleteTask, updateTask,
   } = useTasks()
 
   const {
     events, loading: eventsLoading, error: eventsError,
-    addEvent, updateEvent, deleteEvent, deleteEventByTaskId,
+    addEvent, addEventsBatch, updateEvent, deleteEvent, deleteEventByTaskId,
   } = useEvents()
 
   const {
     tutorials: rawTutorials, loading: tutorialsLoading, error: tutorialsError,
-    addTutorial, updateTutorial, deleteTutorial, deleteTutorialBySessionId,
+    addTutorial, addTutorialsBatch, updateTutorial, deleteTutorial, deleteTutorialBySessionId,
   } = useTutorials()
 
   // Map tutorials to CalendarEvent shape for display
   const tutorials: CalendarEvent[] = rawTutorials.map((t: Tutorial) => ({
-    id:         t.id,
-    user_id:    t.user_id,
-    title:      t.title,
-    date:       t.date,
-    start_time: t.start_time,
-    end_time:   t.end_time,
-    source:     'tutorial',
-    task_id:    null,
-    color:      t.color ?? 'orange',
-    created_at: t.created_at,
+    id:           t.id,
+    user_id:      t.user_id,
+    title:        t.title,
+    date:         t.date,
+    start_time:   t.start_time,
+    end_time:     t.end_time,
+    source:       'tutorial',
+    task_id:      null,
+    color:        t.color ?? 'orange',
+    is_recurring: t.is_recurring ?? false,
+    created_at:   t.created_at,
   }))
 
   // -- Tasks --
@@ -183,18 +184,21 @@ export function useWeekSync() {
     error:   tasksError ?? eventsError ?? tutorialsError,
 
     // Task actions
-    addTask:    handleAddTask,
-    toggleTask: handleToggleTask,
-    deleteTask: handleDeleteTask,
-    updateTask: handleUpdateTask,
+    addTask:       handleAddTask,
+    addTasksBatch,
+    toggleTask:    handleToggleTask,
+    deleteTask:    handleDeleteTask,
+    updateTask:    handleUpdateTask,
 
     // Event actions
-    addEvent:    handleAddEvent,
-    updateEvent: handleUpdateEvent,
-    deleteEvent: handleDeleteEvent,
+    addEvent:       handleAddEvent,
+    addEventsBatch,
+    updateEvent:    handleUpdateEvent,
+    deleteEvent:    handleDeleteEvent,
 
     // Tutorial actions
     addTutorial:               handleAddTutorial,
+    addTutorialsBatch,
     updateTutorial:            handleUpdateTutorial,
     deleteTutorial:            handleDeleteTutorial,
     deleteTutorialBySessionId,

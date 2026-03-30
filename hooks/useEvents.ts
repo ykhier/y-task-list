@@ -25,9 +25,11 @@ export function useEvents() {
       .order('start_time', { ascending: true })
     if (error) {
       setError(error.message)
-    } else {
-      setEvents(data ?? [])
+      setLoading(false)
+      return
     }
+
+    setEvents(data ?? [])
     setLoading(false)
   }, [user])
 
@@ -42,7 +44,20 @@ export function useEvents() {
         schema: 'public',
         table: 'sessions',
         filter: `user_id=eq.${user.id}`,
-      }, () => fetchEvents())
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const incoming = payload.new as CalendarEvent
+          setEvents((prev) =>
+            prev.some((e) => e.id === incoming.id) ? prev : [...prev, incoming]
+          )
+        } else if (payload.eventType === 'UPDATE') {
+          setEvents((prev) =>
+            prev.map((e) => (e.id === payload.new.id ? (payload.new as CalendarEvent) : e))
+          )
+        } else if (payload.eventType === 'DELETE') {
+          setEvents((prev) => prev.filter((e) => e.id !== payload.old.id))
+        }
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -72,6 +87,18 @@ export function useEvents() {
     if (error) { setError(error.message); fetchEvents() }
   }, [fetchEvents])
 
+  const addEventsBatch = useCallback(async (items: NewEvent[]): Promise<CalendarEvent[]> => {
+    if (!user || items.length === 0) return []
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert(items.map((item) => ({ ...item, user_id: user.id })))
+      .select()
+    if (error) { setError(error.message); return [] }
+    const saved = data ?? []
+    setEvents((prev) => [...prev, ...saved])
+    return saved
+  }, [user])
+
   const deleteEventByTaskId = useCallback(async (taskId: string) => {
     setEvents((prev) => prev.filter((e) => e.task_id !== taskId))
     await supabase.from('sessions').delete().eq('task_id', taskId)
@@ -82,6 +109,7 @@ export function useEvents() {
     loading,
     error,
     addEvent,
+    addEventsBatch,
     updateEvent,
     deleteEvent,
     deleteEventByTaskId,

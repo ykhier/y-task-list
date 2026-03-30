@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -40,21 +41,23 @@ interface TutorialModalProps {
   open: boolean
   tutorial: CalendarEvent | null
   onClose: () => void
-  onSave: (id: string, data: { date: string; start_time: string; end_time: string }) => Promise<void>
+  onSave: (id: string, data: { date: string; start_time: string; end_time: string; is_recurring: boolean }) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
 export default function TutorialModal({ open, tutorial, onClose, onSave, onDelete }: TutorialModalProps) {
-  const [dayIndex, setDayIndex]   = useState(0)
-  const [startTime, setStartTime] = useState('10:00')
-  const [endTime, setEndTime]     = useState('11:00')
-  const [saving, setSaving]       = useState(false)
+  const [dayIndex, setDayIndex]     = useState(0)
+  const [startTime, setStartTime]   = useState('10:00')
+  const [endTime, setEndTime]       = useState('11:00')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [saving, setSaving]         = useState(false)
 
   useEffect(() => {
     if (tutorial) {
       setDayIndex(getDayIndexFromDate(tutorial.date))
       setStartTime(tutorial.start_time)
       setEndTime(tutorial.end_time)
+      setIsRecurring(tutorial.is_recurring ?? false)
     }
   }, [tutorial, open])
 
@@ -64,9 +67,10 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
     e.preventDefault()
     setSaving(true)
     await onSave(tutorial.id, {
-      date:       getDateForWeekday(dayIndex),
-      start_time: startTime,
-      end_time:   endTime,
+      date:         getDateForWeekday(dayIndex),
+      start_time:   startTime,
+      end_time:     endTime,
+      is_recurring: isRecurring,
     })
     setSaving(false)
     onClose()
@@ -112,6 +116,17 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
               <Input id="tut-end" type="time" value={endTime}
                 onChange={(e) => setEndTime(e.target.value)} required />
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="tut-recurring"
+              checked={isRecurring}
+              onCheckedChange={(v) => setIsRecurring(!!v)}
+            />
+            <Label htmlFor="tut-recurring" className="cursor-pointer">
+              קבוע כל שבוע
+            </Label>
           </div>
 
           <div className="flex gap-2 justify-between pt-1">

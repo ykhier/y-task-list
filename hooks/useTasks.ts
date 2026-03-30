@@ -25,9 +25,11 @@ export function useTasks() {
       .order('created_at', { ascending: false })
     if (error) {
       setError(error.message)
-    } else {
-      setTasks(data ?? [])
+      setLoading(false)
+      return
     }
+
+    setTasks(data ?? [])
     setLoading(false)
   }, [user])
 
@@ -43,7 +45,20 @@ export function useTasks() {
         schema: 'public',
         table: 'tasks',
         filter: `user_id=eq.${user.id}`,
-      }, () => fetchTasks())
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const incoming = payload.new as Task
+          setTasks((prev) =>
+            prev.some((t) => t.id === incoming.id) ? prev : [incoming, ...prev]
+          )
+        } else if (payload.eventType === 'UPDATE') {
+          setTasks((prev) =>
+            prev.map((t) => (t.id === payload.new.id ? (payload.new as Task) : t))
+          )
+        } else if (payload.eventType === 'DELETE') {
+          setTasks((prev) => prev.filter((t) => t.id !== payload.old.id))
+        }
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -83,11 +98,23 @@ export function useTasks() {
     if (error) { setError(error.message); fetchTasks() }
   }, [fetchTasks])
 
+  const addTasksBatch = useCallback(async (items: NewTask[]): Promise<Task[]> => {
+    if (!user || items.length === 0) return []
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(items.map((item) => ({ ...item, user_id: user.id, is_completed: false })))
+      .select()
+    if (error) { setError(error.message); return [] }
+    const saved = data ?? []
+    setTasks((prev) => [...saved, ...prev])
+    return saved
+  }, [user])
+
   const updateTask = useCallback(async (id: string, data: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)))
     const { error } = await supabase.from('tasks').update(data).eq('id', id)
     if (error) { setError(error.message); fetchTasks() }
   }, [fetchTasks])
 
-  return { tasks, loading, error, addTask, toggleTask, deleteTask, updateTask }
+  return { tasks, loading, error, addTask, addTasksBatch, toggleTask, deleteTask, updateTask }
 }

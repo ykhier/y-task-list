@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -104,7 +105,9 @@ export default function TaskForm({
   const [dayIndex, setDayIndex] = useState<number>(initDay);
   const [time, setTime] = useState(editTask?.time ?? "");
   const [endTime, setEndTime] = useState(editTask?.end_time ?? "");
+  const [isRecurring, setIsRecurring] = useState(editTask?.is_recurring ?? false);
   const [conflict, setConflict] = useState<string | null>(null);
+  const [timeError, setTimeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (editTask) {
@@ -113,6 +116,7 @@ export default function TaskForm({
       setDayIndex(new Date(editTask.date + "T00:00:00").getDay());
       setTime(editTask.time ?? "");
       setEndTime(editTask.end_time ?? "");
+      setIsRecurring(editTask.is_recurring ?? false);
     }
   }, [editTask]);
 
@@ -129,8 +133,16 @@ export default function TaskForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title.trim() || !time || !endTime) return;
-    if (conflict) return;
+    if (!time || !endTime) {
+      setTimeError('יש למלא שעת התחלה ושעת סיום');
+      return;
+    }
+    if (endTime <= time) {
+      setTimeError('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
+      return;
+    }
+    setTimeError(null);
+    if (!title.trim() || conflict) return;
     const date = getDateForWeekday(dayIndex);
     onSubmit({
       title: title.trim(),
@@ -138,6 +150,7 @@ export default function TaskForm({
       date,
       time,
       end_time: endTime,
+      is_recurring: isRecurring,
     });
   };
 
@@ -213,6 +226,23 @@ export default function TaskForm({
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="task-recurring"
+          checked={isRecurring}
+          onCheckedChange={(v) => setIsRecurring(!!v)}
+        />
+        <Label htmlFor="task-recurring" className="cursor-pointer font-normal">
+          חוזר כל שבוע
+        </Label>
+      </div>
+
+      {timeError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600 font-medium">
+          ⚠️ {timeError}
+        </div>
+      )}
+
       {conflict && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-600 font-medium">
           ⚠️ {conflict}
@@ -230,7 +260,7 @@ export default function TaskForm({
         </Button>
         <Button
           type="submit"
-          disabled={isLoading || !title.trim() || !time || !endTime || !!conflict}
+          disabled={isLoading || !title.trim() || !!conflict}
         >
           {isLoading ? "שומר..." : editTask ? "שמור שינויים" : "הוסף משימה"}
         </Button>

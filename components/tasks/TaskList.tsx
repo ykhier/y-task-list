@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Plus, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TaskItem from "./TaskItem";
@@ -26,6 +26,7 @@ interface TaskListProps {
   onToggle: (id: string, completed: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onEdit: (id: string, data: Partial<Task>) => Promise<void>;
+  onBeforeAdd?: (date: string, time?: string | null, endTime?: string | null) => string | null;
 }
 
 const FILTERS: { label: string; value: TaskFilter }[] = [
@@ -45,6 +46,7 @@ export default function TaskList({
   onToggle,
   onDelete,
   onEdit,
+  onBeforeAdd,
 }: TaskListProps) {
   const [filter, setFilter] = useState<TaskFilter>(
     selectedDate ? "all" : "today",
@@ -52,6 +54,8 @@ export default function TaskList({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addSuggestion, setAddSuggestion] = useState<string | null>(null);
+  const addSuggestionShown = useRef(false);
 
   const today = toDateStr(new Date());
 
@@ -92,6 +96,16 @@ export default function TaskList({
   const handleAdd = async (
     data: Omit<Task, "id" | "user_id" | "created_at" | "is_completed">,
   ) => {
+    if (onBeforeAdd && !addSuggestionShown.current) {
+      const suggestion = onBeforeAdd(data.date, data.time, data.end_time);
+      if (suggestion) {
+        setAddSuggestion(suggestion);
+        addSuggestionShown.current = true;
+        return;
+      }
+    }
+    setAddSuggestion(null);
+    addSuggestionShown.current = false;
     setSaving(true);
     await onAdd(data);
     setSaving(false);
@@ -168,11 +182,18 @@ export default function TaskList({
       </div>
 
       {/* Add Task Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) { setDialogOpen(false); setAddSuggestion(null); addSuggestionShown.current = false; } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>משימה חדשה</DialogTitle>
           </DialogHeader>
+          {addSuggestion && (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 flex flex-col gap-1">
+              <p className="font-semibold">שים לב — קיים תוכן קבוע מהשבוע הקודם</p>
+              <p>{addSuggestion}</p>
+              <p className="text-xs text-amber-600">{'לחץ "הוסף משימה" שוב כדי להוסיף ידנית, או סגור ולחץ "צרף קבועות".'}</p>
+            </div>
+          )}
           <TaskForm
             initialDate={selectedDate ?? toDateStr(new Date())}
             events={events}
