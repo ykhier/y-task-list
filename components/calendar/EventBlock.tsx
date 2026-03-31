@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Repeat2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime12, timeToOffset, timeRangeToHeight, timeToMinutes } from '@/lib/date'
-import { GRID_START_HOUR } from './DayColumn'
+import { GRID_START_HOUR } from './calendar-constants'
 import type { CalendarEvent } from '@/types'
 
 const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {

@@ -1,13 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Clock, FileText, Pencil, Repeat2 } from 'lucide-react'
+import { Trash2, Clock, FileText, Pencil, Repeat2, CalendarDays } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { formatTime12 } from '@/lib/date'
 import type { Task } from '@/types'
+
+const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+
+function getDayLabel(dateStr: string) {
+  return DAY_NAMES[new Date(`${dateStr}T00:00:00`).getDay()]
+}
 
 interface TaskItemProps {
   task: Task
@@ -61,25 +67,27 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
           </p>
         )}
 
-        {(task.time && task.end_time || task.is_recurring) && (
-          <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5">
-            {task.time && task.end_time && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                <span className="text-xs text-blue-500 font-medium">
-                  {formatTime12(task.time)} – {formatTime12(task.end_time)}
-                </span>
-                <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                  בלוח שנה
-                </Badge>
-              </div>
-            )}
-            {task.is_recurring && (
-              <div className="flex items-center gap-1">
-                <Repeat2 className="h-3 w-3 text-violet-400 flex-shrink-0" />
-                <span className="text-xs text-violet-500 font-medium">חוזר כל שבוע</span>
-              </div>
-            )}
+        <div className={cn('mt-0.5 flex items-center gap-2', task.is_completed && 'opacity-60')}>
+          <CalendarDays className="h-3 w-3 text-slate-400 flex-shrink-0" />
+          <span className="text-xs text-slate-400">יום {getDayLabel(task.date)}</span>
+          {task.is_recurring && (
+            <>
+              <span className="text-slate-300 text-xs">·</span>
+              <Repeat2 className="h-3 w-3 text-violet-400 flex-shrink-0" />
+              <span className="text-xs text-violet-500 font-medium">חוזר כל שבוע</span>
+            </>
+          )}
+        </div>
+
+        {task.time && task.end_time && (
+          <div className="mt-1 flex items-center gap-1">
+            <Clock className="h-3 w-3 text-blue-400 flex-shrink-0" />
+            <span className="text-xs text-blue-500 font-medium">
+              {formatTime12(task.time)} – {formatTime12(task.end_time)}
+            </span>
+            <Badge variant="default" className="text-[10px] px-1.5 py-0">
+              בלוח שנה
+            </Badge>
           </div>
         )}
       </div>

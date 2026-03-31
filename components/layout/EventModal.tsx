@@ -12,9 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2 } from 'lucide-react'
-import {
-  Select,
-} from '@/components/ui/select'
+import { Select } from '@/components/ui/select'
 import {
   HebrewSelectContent,
   HebrewSelectItem,
@@ -22,6 +20,8 @@ import {
   HebrewSelectValue,
 } from '@/components/ui/hebrew-select'
 import { defaultEndTime, toDateStr } from '@/lib/date'
+import { VoiceInputButton } from '@/components/ui/VoiceInputButton'
+import type { ParsedVoiceInput } from '@/hooks/useVoiceInput'
 import type { CalendarEvent } from '@/types'
 
 const COLOR_OPTIONS = [
@@ -44,15 +44,71 @@ const DAY_OPTIONS = [
 
 function getDateForWeekday(dayIndex: number): string {
   const now = new Date()
-  const diff = dayIndex - now.getDay()
   const target = new Date(now)
-  target.setDate(now.getDate() + diff)
+  target.setDate(now.getDate() + (dayIndex - now.getDay()))
   return toDateStr(target)
 }
 
 function getDayIndexFromDate(dateStr: string): number {
   return new Date(dateStr + 'T00:00:00').getDay()
 }
+
+// ── Shared sub-components ────────────────────────────────
+
+function DaySelect({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{label}</Label>
+      <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
+        <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
+        <HebrewSelectContent>
+          {DAY_OPTIONS.map((d) => (
+            <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
+          ))}
+        </HebrewSelectContent>
+      </Select>
+    </div>
+  )
+}
+
+function TimeRangeFields({
+  startId, endId,
+  startLabel, endLabel,
+  startValue, endValue,
+  onStartChange, onEndChange,
+}: {
+  startId: string; endId: string
+  startLabel: string; endLabel: string
+  startValue: string; endValue: string
+  onStartChange: (v: string) => void
+  onEndChange: (v: string) => void
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={startId}>{startLabel}</Label>
+        <Input id={startId} type="time" value={startValue}
+          onChange={(e) => onStartChange(e.target.value)} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={endId}>{endLabel}</Label>
+        <Input id={endId} type="time" value={endValue}
+          onChange={(e) => onEndChange(e.target.value)} required />
+      </div>
+    </div>
+  )
+}
+
+function RecurringCheckbox({ id, checked, onChange }: { id: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Checkbox id={id} checked={checked} onCheckedChange={(v) => onChange(!!v)} />
+      <Label htmlFor={id} className="cursor-pointer">קבוע כל שבוע</Label>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────
 
 type EventData = Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>
 
@@ -93,8 +149,7 @@ export default function EventModal({
   const [startTime, setStartTime] = useState(editEvent?.start_time ?? defaultStart)
   const [endTime, setEndTime]     = useState(editEvent?.end_time ?? defaultEndTime(defaultStart))
   const [color, setColor]         = useState(editEvent?.color ?? 'blue')
-
-  const [isRecurring, setIsRecurring]           = useState(editEvent?.is_recurring ?? false)
+  const [isRecurring, setIsRecurring] = useState(editEvent?.is_recurring ?? false)
 
   const [tutorialEnabled, setTutorialEnabled]         = useState(false)
   const [tutorialDayIndex, setTutorialDayIndex]       = useState<number>(new Date().getDay())
@@ -138,20 +193,34 @@ export default function EventModal({
     }
   }
 
-  const handleDayChange = (val: string) => {
-    const idx = Number(val)
+  const handleDayChange = (idx: number) => {
     setDayIndex(idx)
     setTutorialDayIndex(idx)
+  }
+
+  const applyParsed = (data: ParsedVoiceInput) => {
+    if (data.title !== null) setTitle(data.title)
+    if (data.dayIndex !== null) handleDayChange(data.dayIndex)
+    if (data.startTime !== null) handleStartChange(data.startTime)
+    if (data.endTime !== null) setEndTime(data.endTime)
+    if (data.isRecurring !== null) setIsRecurring(data.isRecurring)
+    if (data.color !== null) setColor(data.color)
+    if (data.tutorial !== null) {
+      setTutorialEnabled(true)
+      if (data.tutorial.dayIndex !== null) setTutorialDayIndex(data.tutorial.dayIndex)
+      if (data.tutorial.startTime !== null) setTutorialStart(data.tutorial.startTime)
+      if (data.tutorial.endTime !== null) setTutorialEnd(data.tutorial.endTime)
+      if (data.tutorial.isRecurring !== null) setTutorialIsRecurring(data.tutorial.isRecurring)
+    }
   }
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!title.trim()) return
-    const date = getDateForWeekday(dayIndex)
 
     const lectureData: EventData = {
       title:        title.trim(),
-      date,
+      date:         getDateForWeekday(dayIndex),
       start_time:   startTime,
       end_time:     endTime,
       source:       'manual',
@@ -185,44 +254,36 @@ export default function EventModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Lecture fields */}
+          {/* Title */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ev-title">כותרת *</Label>
-            <Input
-              id="ev-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="שם ההרצאה"
-              autoFocus
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>יום</Label>
-            <Select value={String(dayIndex)} onValueChange={handleDayChange}>
-              <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
-              <HebrewSelectContent>
-                {DAY_OPTIONS.map((d) => (
-                  <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
-                ))}
-              </HebrewSelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ev-start">שעת התחלה</Label>
-              <Input id="ev-start" type="time" value={startTime}
-                onChange={(e) => handleStartChange(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ev-end">שעת סיום</Label>
-              <Input id="ev-end" type="time" value={endTime}
-                onChange={(e) => setEndTime(e.target.value)} required />
+            <div className="flex gap-2">
+              <Input
+                id="ev-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="שם ההרצאה"
+                autoFocus
+                required
+                className="flex-1"
+              />
+              <VoiceInputButton onParsed={applyParsed} />
             </div>
           </div>
 
+          {/* Day */}
+          <DaySelect label="יום" value={dayIndex} onChange={handleDayChange} />
+
+          {/* Times */}
+          <TimeRangeFields
+            startId="ev-start" endId="ev-end"
+            startLabel="שעת התחלה" endLabel="שעת סיום"
+            startValue={startTime} endValue={endTime}
+            onStartChange={handleStartChange}
+            onEndChange={setEndTime}
+          />
+
+          {/* Color */}
           <div className="flex flex-col gap-1.5">
             <Label>צבע</Label>
             <Select value={color} onValueChange={setColor}>
@@ -235,16 +296,8 @@ export default function EventModal({
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="lecture-recurring"
-              checked={isRecurring}
-              onCheckedChange={(v) => setIsRecurring(!!v)}
-            />
-            <Label htmlFor="lecture-recurring" className="cursor-pointer">
-              קבוע כל שבוע
-            </Label>
-          </div>
+          {/* Recurring */}
+          <RecurringCheckbox id="lecture-recurring" checked={isRecurring} onChange={setIsRecurring} />
 
           {/* Tutorial section — only on create */}
           {!editEvent && (
@@ -262,50 +315,15 @@ export default function EventModal({
 
               {tutorialEnabled && (
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>יום תרגול</Label>
-                    <Select
-                      value={String(tutorialDayIndex)}
-                      onValueChange={(v) => setTutorialDayIndex(Number(v))}
-                    >
-                      <HebrewSelectTrigger><HebrewSelectValue /></HebrewSelectTrigger>
-                      <HebrewSelectContent>
-                        {DAY_OPTIONS.map((d) => (
-                          <HebrewSelectItem key={d.value} value={String(d.value)}>{d.label}</HebrewSelectItem>
-                        ))}
-                      </HebrewSelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="tut-start">התחלת תרגול</Label>
-                      <Input
-                        id="tut-start"
-                        type="time"
-                        value={tutorialStart}
-                        onChange={(e) => {
-                          setTutorialStart(e.target.value)
-                          setTutorialEnd(defaultEndTime(e.target.value))
-                        }}
-                        required
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="tut-end">סיום תרגול</Label>
-                      <Input id="tut-end" type="time" value={tutorialEnd}
-                        onChange={(e) => setTutorialEnd(e.target.value)} required />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="tutorial-recurring"
-                      checked={tutorialIsRecurring}
-                      onCheckedChange={(v) => setTutorialIsRecurring(!!v)}
-                    />
-                    <Label htmlFor="tutorial-recurring" className="cursor-pointer">
-                      קבוע כל שבוע
-                    </Label>
-                  </div>
+                  <DaySelect label="יום תרגול" value={tutorialDayIndex} onChange={setTutorialDayIndex} />
+                  <TimeRangeFields
+                    startId="tut-start" endId="tut-end"
+                    startLabel="התחלת תרגול" endLabel="סיום תרגול"
+                    startValue={tutorialStart} endValue={tutorialEnd}
+                    onStartChange={(v) => { setTutorialStart(v); setTutorialEnd(defaultEndTime(v)) }}
+                    onEndChange={setTutorialEnd}
+                  />
+                  <RecurringCheckbox id="tutorial-recurring" checked={tutorialIsRecurring} onChange={setTutorialIsRecurring} />
                 </div>
               )}
             </div>

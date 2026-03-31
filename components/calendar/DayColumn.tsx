@@ -2,12 +2,9 @@
 
 import { useState } from 'react'
 import EventBlock from './EventBlock'
+import { HOUR_HEIGHT, GRID_START_HOUR, HOURS } from './calendar-constants'
 import { minutesToTime } from '@/lib/date'
 import type { CalendarEvent, WeekDay } from '@/types'
-
-const HOUR_HEIGHT = 60
-const GRID_START_HOUR = 8
-const HOURS = Array.from({ length: 16 }, (_, i) => i + GRID_START_HOUR) // 08:00–23:00
 
 interface DayColumnProps {
   day: WeekDay
@@ -90,5 +87,3 @@ export default function DayColumn({
     </div>
   )
 }
-
-export { HOUR_HEIGHT, HOURS, GRID_START_HOUR }

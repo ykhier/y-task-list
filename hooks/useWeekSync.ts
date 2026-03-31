@@ -56,13 +56,14 @@ export function useWeekSync() {
       // If task has time → auto-create event
       if (task.time && task.end_time) {
         await addEvent({
-          title:      task.title,
-          date:       task.date,
-          start_time: task.time,
-          end_time:   task.end_time,
-          source:     'task',
-          task_id:    task.id,
-          color:      'green',
+          title:        task.title,
+          date:         task.date,
+          start_time:   task.time,
+          end_time:     task.end_time,
+          source:       'task',
+          task_id:      task.id,
+          color:        'green',
+          is_recurring: task.is_recurring ?? false,
         }).then(({ error }) => { if (error) console.error('auto-create event failed:', error) })
       }
     },
@@ -93,32 +94,35 @@ export function useWeekSync() {
       await updateTask(id, data)
 
       // Sync time change → update linked event
-      if (data.time !== undefined || data.title !== undefined || data.date !== undefined) {
+      if (data.time !== undefined || data.title !== undefined || data.date !== undefined || data.is_recurring !== undefined) {
         const existingEvent = events.find((e) => e.task_id === id)
         const newTime = data.time ?? original?.time
         const newEndTime = data.end_time ?? original?.end_time
         const newTitle = data.title ?? original?.title ?? ''
         const newDate = data.date ?? original?.date ?? ''
+        const newRecurring = data.is_recurring ?? original?.is_recurring ?? false
 
         if (newTime && newEndTime) {
           if (existingEvent) {
             // Update existing event
             await updateEvent(existingEvent.id, {
-              title:      newTitle,
-              date:       newDate,
-              start_time: newTime,
-              end_time:   newEndTime,
+              title:        newTitle,
+              date:         newDate,
+              start_time:   newTime,
+              end_time:     newEndTime,
+              is_recurring: newRecurring,
             })
           } else {
             // Task now has a time — create new event
             await addEvent({
-              title:      newTitle,
-              date:       newDate,
-              start_time: newTime,
-              end_time:   newEndTime,
-              source:     'task',
-              task_id:    id,
-              color:      'green',
+              title:        newTitle,
+              date:         newDate,
+              start_time:   newTime,
+              end_time:     newEndTime,
+              source:       'task',
+              task_id:      id,
+              color:        'green',
+              is_recurring: newRecurring,
             }).then(({ error }) => { if (error) console.error('create event on task update failed:', error) })
           }
         } else if (existingEvent) {

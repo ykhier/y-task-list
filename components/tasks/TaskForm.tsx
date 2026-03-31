@@ -16,6 +16,8 @@ import {
   HebrewSelectValue,
 } from "@/components/ui/hebrew-select";
 import { toDateStr } from "@/lib/date";
+import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
+import type { ParsedVoiceInput } from "@/hooks/useVoiceInput";
 import type { Task, CalendarEvent } from "@/types";
 
 const DAY_OPTIONS = [
@@ -52,8 +54,11 @@ function findConflict(
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
 
+  const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id))
+
   for (const ev of events) {
     if (ev.date !== date) continue;
+    if (ev.task_id && (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)) continue;
     const evStart = timeToMinutes(ev.start_time);
     const evEnd = timeToMinutes(ev.end_time);
     if (start < evEnd && end > evStart) {
@@ -63,6 +68,7 @@ function findConflict(
 
   for (const task of tasks) {
     if (task.id === excludeTaskId) continue;
+    if (task.is_completed) continue;
     if (task.date !== date || !task.time || !task.end_time) continue;
     const taskStart = timeToMinutes(task.time);
     const taskEnd = timeToMinutes(task.end_time);
@@ -133,6 +139,15 @@ export default function TaskForm({
     setConflict(result);
   }, [dayIndex, time, endTime, events, tasks, editTask?.id]);
 
+  const applyParsed = (data: ParsedVoiceInput) => {
+    if (data.title !== null) setTitle(data.title)
+    if (data.description !== null) setDescription(data.description ?? '')
+    if (data.dayIndex !== null) setDayIndex(data.dayIndex)
+    if (data.startTime !== null) setTime(data.startTime)
+    if (data.endTime !== null) setEndTime(data.endTime)
+    if (data.isRecurring !== null) setIsRecurring(data.isRecurring)
+  }
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!time || !endTime) {
@@ -160,14 +175,18 @@ export default function TaskForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="task-title">כותרת משימה *</Label>
-        <Input
-          id="task-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="מה צריך לעשות?"
-          autoFocus
-          required
-        />
+        <div className="flex gap-2">
+          <Input
+            id="task-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="מה צריך לעשות?"
+            autoFocus
+            required
+            className="flex-1"
+          />
+          <VoiceInputButton onParsed={applyParsed} />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
