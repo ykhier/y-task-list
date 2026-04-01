@@ -135,6 +135,14 @@ Several components have completely separate mobile/desktop layouts via `flex sm:
 - **CalendarView**: Mobile shows a day-picker strip + single `DayColumn`; desktop shows 7-column grid. The mobile week navigation uses two full-width card-style buttons (prev/next week). Both scroll independently via `mobileScrollRef` / `scrollRef`.
 - **Navbar**: Mobile renders an active-tab badge + hamburger that opens a slide-in drawer (`translate-x-full` → `translate-x-0`). Desktop renders inline tabs. The drawer locks body scroll and closes on Escape.
 - **TaskList**: The `+` button is icon-only on mobile (`hidden sm:inline` on the label); filter pills use `flex-1` so they divide width equally with no overflow.
+- **Dialogs**: On mobile (`< sm`) all `Dialog`/`DialogContent` render as a **bottom sheet** — `inset-x-0 bottom-0 rounded-t-2xl`, slides in from the bottom with a drag handle. On desktop they revert to the standard centered modal with zoom animation. Any `max-w-*` override on `DialogContent` should be prefixed with `sm:` (e.g. `sm:max-w-md`) so it doesn't constrain the full-width bottom sheet on mobile.
+
+### Safe area (iPhone notch / Dynamic Island)
+
+The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.tsx`), so content can fill the full screen edge-to-edge. Safe areas are handled explicitly:
+
+- **Top**: `app/page.tsx` renders `<div className="flex-shrink-0 bg-white h-[env(safe-area-inset-top,0px)]" />` above the navbar to fill the notch/Dynamic Island area with the navbar background color.
+- **Bottom**: The bottom sheet dialog uses the `pb-safe-area-or-6` utility (`padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px))`) defined in `globals.css` — ensures content clears the home indicator while keeping at least 24 px of padding on all devices.
 
 ### RTL gotchas
 
