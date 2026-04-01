@@ -29,6 +29,8 @@ export default function AppPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F8FAFC]">
+      {/* Safe-area spacer for iPhone notch / Dynamic Island */}
+      <div className="flex-shrink-0 bg-white h-[env(safe-area-inset-top,0px)]" />
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="flex-1 overflow-hidden">

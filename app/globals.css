@@ -50,6 +50,14 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Safe-area padding helpers (iPhone notch / home indicator) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pb-safe-area-or-6 {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Respect user motion preferences */

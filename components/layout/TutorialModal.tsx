@@ -91,7 +91,7 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>ערוך תרגול</DialogTitle>
         </DialogHeader>

@@ -248,7 +248,7 @@ export default function EventModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editEvent ? 'ערוך הרצאה' : 'הרצאה חדשה'}</DialogTitle>
         </DialogHeader>

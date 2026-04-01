@@ -34,11 +34,28 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-100 bg-white p-5 sm:p-6 shadow-lg duration-200 max-h-[90dvh] overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        // Base
+        'fixed z-50 bg-white duration-300 overflow-y-auto',
+        // Animations
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        // Mobile: full-width bottom sheet
+        'inset-x-0 bottom-0 rounded-t-2xl border-t border-slate-200 px-5 pt-9 pb-safe-area-or-6 max-h-[88dvh]',
+        'data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
+        // Desktop: centered modal (overrides mobile)
+        'sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:right-auto sm:bottom-auto',
+        'sm:w-[calc(100%-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2',
+        'sm:rounded-xl sm:border sm:border-slate-100 sm:p-6 sm:max-h-[90dvh] sm:shadow-lg',
+        'sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0',
+        'sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
         className
       )}
       {...props}
     >
+      {/* Drag handle — mobile bottom sheet only */}
+      <div className="pointer-events-none absolute top-3 inset-x-0 flex justify-center sm:hidden">
+        <div className="h-1.5 w-12 rounded-full bg-slate-300" />
+      </div>
       {children}
       <DialogPrimitive.Close className="absolute left-4 top-4 rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
         <X className="h-4 w-4" />
