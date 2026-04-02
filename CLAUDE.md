@@ -20,7 +20,12 @@ Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-OPENAI_API_KEY=...          # required for voice input (/api/voice-parse)
+SUPABASE_SERVICE_ROLE_KEY=...   # required for admin OTP routes (/api/send-otp, /api/verify-otp)
+OPENAI_API_KEY=...              # required for voice input (/api/voice-parse)
+RESEND_API_KEY=...              # optional — OTP emails fall back to console.log without it
+LANGCHAIN_TRACING_V2=true       # optional — enables LangSmith tracing for voice API calls
+LANGCHAIN_API_KEY=...           # required if tracing enabled
+LANGCHAIN_PROJECT=...           # LangSmith project name
 ```
 
 ## Architecture
@@ -44,15 +49,33 @@ All state lives in hooks composed at the root page ([app/page.tsx](app/page.tsx)
 
 ### Auth
 
-`SupabaseProvider` wraps the whole app and exposes the current user via `useSupabaseUser()`. It tries a real Supabase session first, then calls `signInAnonymously()` — the actual working auth path. The `/login` and `/signup` routes exist as UI stubs but are not yet wired to Supabase. **Anonymous sign-in must be enabled in Supabase dashboard: Authentication → Providers → Anonymous.** All Supabase queries filter by `user_id` and RLS policies enforce this server-side.
+`SupabaseProvider` wraps the whole app, resolves the session via `getSession()` on mount, and guards all routes. Public paths are `AUTH_PATHS = ['/login', '/signup', '/verify-otp']`. Exposes two hooks:
+
+- `useSupabaseUser()` — returns the current `User | null`
+- `useSupabaseAuth()` — returns `{ user, signOut }` (used by Navbar for the logout button)
+
+`/login` calls `supabase.auth.signInWithPassword`. For non-admin users it redirects to `/`. `/signup` calls `supabase.auth.signUp` then immediately calls `signInWithPassword` and redirects to `/`. `components/auth/AuthLayout.tsx` is a shared card/background wrapper available for future auth pages. All Supabase queries filter by `user_id` and RLS policies enforce this server-side.
+
+**Admin 2FA (OTP) flow:** Users with `profiles.is_admin = true` require a 6-digit OTP after password login:
+1. `/login` — after successful `signInWithPassword`, checks `profiles.is_admin`; if true, calls `POST /api/send-otp` with `Authorization: Bearer <accessToken>` (from `signInData.session`), stores the token in `sessionStorage` as `otp_token`, then redirects to `/verify-otp`
+2. `/verify-otp` — reads `otp_token` from `sessionStorage`, starts a 60-second countdown immediately, sends `POST /api/verify-otp` with Bearer token + code; on success sets `sessionStorage.otp_verified = user.id` and redirects to `/`
+3. `SupabaseProvider` route guard: admin users without `otp_verified` in sessionStorage are signed out and sent to `/login`; this guard is skipped on all `AUTH_PATHS` to allow the login → verify-otp flow to complete
+4. API routes use `createAdminClient()` (service role key) with `adminClient.auth.getUser(token)` to verify the Bearer token — **`SUPABASE_SERVICE_ROLE_KEY` is required**
+5. OTP codes stored in `otp_codes` table (1-minute expiry); emails sent via Resend if `RESEND_API_KEY` is set, otherwise logged to console
+
+`middleware.ts` runs on every request (excluding static assets) and calls `supabase.auth.getUser()` to refresh the session cookie — required for SSR auth to work correctly with `@supabase/ssr`.
+
+**Supabase dashboard settings:** In Authentication → Providers → Email, disable "Confirm email" if you don't want users to verify their email before logging in. The `/auth/callback` route handles the verification code exchange if email confirmation is enabled.
 
 ### Database
 
-Schema is in [supabase/schema.sql](supabase/schema.sql). Three tables:
+Schema is in [supabase/schema.sql](supabase/schema.sql). Five tables:
 
 - `tasks` — `time`/`end_time` (HH:MM), `is_recurring` (auto-advances past recurring tasks to current week on fetch)
 - `sessions` — calendar events; `source in ('manual','task')`; task-linked rows have `task_id` FK
 - `tutorials` — separate event type linked optionally to a session via `session_id` FK
+- `profiles` — one row per user; `is_admin boolean NOT NULL DEFAULT false`; `full_name`
+- `otp_codes` — admin 2FA codes: `user_id`, `code` (6 digits), `expires_at` (1-minute TTL); old codes are deleted before inserting a new one
 
 Run the schema SQL in the Supabase dashboard to set up a new project.
 
@@ -153,6 +176,7 @@ The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.t
 ### TaskForm conflict detection
 
 `findConflict` in `TaskForm.tsx` checks for time overlaps before allowing submit. Important exclusions:
+
 - Events linked to **completed tasks** are skipped (`ev.task_id && completedTaskIds.has(ev.task_id)`)
 - Events linked to **the task being edited** are skipped (`ev.task_id === excludeTaskId`) — prevents a task from conflicting with its own linked calendar event
 - Completed tasks themselves are skipped in the tasks loop
@@ -166,6 +190,8 @@ The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.t
 3. `/api/voice-parse` (`app/api/voice-parse/route.ts`) — primary path: `gpt-4o-audio-preview` (base64 audio → JSON); fallback: Whisper-1 transcription → GPT-4o-mini. Requires `OPENAI_API_KEY` in `.env.local`.
 
 `ParsedVoiceInput` uses `null` for every field not spoken — callers only update state for non-null fields (partial update pattern). The tutorial subfield works the same way.
+
+All voice API calls are traced in **LangSmith** (`LANGCHAIN_TRACING_V2=true`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT` in `.env.local`). The route uses `wrapOpenAI` (automatic OpenAI call tracing) and `traceable` (wraps the full parse function with `metadata: { user: <email> }` so each trace shows which user triggered it).
 
 ### Styling
 

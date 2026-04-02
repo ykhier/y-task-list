@@ -64,17 +64,23 @@ export default function TaskList({
     setAddSuggestion(null);
     addSuggestionShown.current = false;
     setSaving(true);
-    await onAdd(data);
-    setSaving(false);
-    setDialogOpen(false);
+    try {
+      await onAdd(data);
+      setDialogOpen(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = async (data: TaskFormPayload) => {
     if (!editingTask) return;
     setSaving(true);
-    await onEdit(editingTask.id, data);
-    setSaving(false);
-    setEditingTask(null);
+    try {
+      await onEdit(editingTask.id, data);
+      setEditingTask(null);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

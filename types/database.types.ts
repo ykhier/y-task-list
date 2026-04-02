@@ -2,6 +2,54 @@ export type Database = {
   public: {
     PostgrestVersion: "12"
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          full_name: string | null
+          email: string | null
+          is_admin: boolean
+          created_at: string
+        }
+        Insert: {
+          id: string
+          full_name?: string | null
+          email?: string | null
+          is_admin?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string | null
+          email?: string | null
+          is_admin?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      otp_codes: {
+        Row: {
+          id: string
+          user_id: string
+          code: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          code: string
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          code?: string
+          expires_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           id: string

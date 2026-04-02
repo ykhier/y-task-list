@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { wrapOpenAI } from 'langsmith/wrappers'
+import { traceable } from 'langsmith/traceable'
+import { createClient } from '@/lib/supabase/server'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const openai = wrapOpenAI(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userEmail = user?.email ?? 'unknown'
+
   const formData = await req.formData()
   const audio = formData.get('audio') as Blob | null
 
@@ -51,53 +58,59 @@ export async function POST(req: NextRequest) {
     `"ללמוד מתמטיקה ביום שני 10:00 שעה תיאור פרק 3 גבולות" → {"title":"ללמוד מתמטיקה","description":"פרק 3 גבולות","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null}\n` +
     `"פגישה עם דן ביום רביעי 14:00 עם הערה להביא מסמכים" → {"title":"פגישה עם דן","description":"להביא מסמכים","dayIndex":3,"startTime":"14:00","endTime":null,"isRecurring":null,"color":null,"tutorial":null}`
 
-  // Try fast single-call path (gpt-4o-audio-preview)
+  const parseVoice = traceable(
+    async () => {
+      // Try fast single-call path (gpt-4o-audio-preview)
+      try {
+        const arrayBuffer = await audio!.arrayBuffer()
+        const base64Audio = Buffer.from(arrayBuffer).toString('base64')
+
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-audio-preview',
+          modalities: ['text'],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content: [{ type: 'input_audio', input_audio: { data: base64Audio, format: 'webm' } }] as any,
+            },
+          ],
+        })
+
+        const raw = completion.choices[0].message.content ?? '{}'
+        const jsonText = raw.replace(/^```(?:json)?\n?|\n?```$/g, '').trim()
+        return JSON.parse(jsonText)
+      } catch {
+        // Fall back to Whisper + GPT-4o-mini
+      }
+
+      // Fallback: Whisper transcription → GPT parse
+      const file = new File([audio!], 'recording.webm', { type: 'audio/webm' })
+      const transcription = await openai.audio.transcriptions.create({
+        file,
+        model: 'whisper-1',
+        language: 'he',
+      })
+
+      const fallbackPrompt = systemPrompt.replace('Listen to the Hebrew audio and', 'Parse this Hebrew text and')
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: fallbackPrompt },
+          { role: 'user', content: transcription.text },
+        ],
+      })
+
+      return JSON.parse(completion.choices[0].message.content ?? '{}')
+    },
+    { name: 'voice-parse', metadata: { user: userEmail } },
+  )
+
   try {
-    const arrayBuffer = await audio.arrayBuffer()
-    const base64Audio = Buffer.from(arrayBuffer).toString('base64')
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-audio-preview',
-      modalities: ['text'],
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          content: [{ type: 'input_audio', input_audio: { data: base64Audio, format: 'webm' } }] as any,
-        },
-      ],
-    })
-
-    const raw = completion.choices[0].message.content ?? '{}'
-    const jsonText = raw.replace(/^```(?:json)?\n?|\n?```$/g, '').trim()
-    const parsed = JSON.parse(jsonText)
-    return NextResponse.json({ parsed })
-  } catch {
-    // Fall back to Whisper + GPT-4o-mini
-  }
-
-  // Fallback: Whisper transcription → GPT parse
-  try {
-    const file = new File([audio], 'recording.webm', { type: 'audio/webm' })
-    const transcription = await openai.audio.transcriptions.create({
-      file,
-      model: 'whisper-1',
-      language: 'he',
-    })
-
-    const fallbackPrompt = systemPrompt.replace('Listen to the Hebrew audio and', 'Parse this Hebrew text and')
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: fallbackPrompt },
-        { role: 'user', content: transcription.text },
-      ],
-    })
-
-    const parsed = JSON.parse(completion.choices[0].message.content ?? '{}')
+    const parsed = await parseVoice()
     return NextResponse.json({ parsed })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'שגיאה בעיבוד הקול'

@@ -6,6 +6,42 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- ── PROFILES (one row per auth user) ─────────────────────────
+create table if not exists public.profiles (
+  id         uuid primary key references auth.users(id) on delete cascade,
+  full_name  text,
+  email      text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "profiles: own row"
+  on public.profiles for all
+  using  (auth.uid() = id)
+  with check (auth.uid() = id);
+
+-- Auto-create profile row whenever a new user signs up
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, full_name, email)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    new.email
+  );
+  return new;
+end;
+$$;
+
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
 -- ── MIGRATION: rename events → sessions (run if upgrading) ──
 -- ALTER TABLE public.events RENAME TO sessions;
 

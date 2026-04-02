@@ -6,9 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import {
   HebrewSelectContent,
   HebrewSelectItem,
@@ -54,11 +52,17 @@ function findConflict(
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
 
-  const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id))
+  const completedTaskIds = new Set(
+    tasks.filter((t) => t.is_completed).map((t) => t.id),
+  );
 
   for (const ev of events) {
     if (ev.date !== date) continue;
-    if (ev.task_id && (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)) continue;
+    if (
+      ev.task_id &&
+      (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)
+    )
+      continue;
     const evStart = timeToMinutes(ev.start_time);
     const evEnd = timeToMinutes(ev.end_time);
     if (start < evEnd && end > evStart) {
@@ -113,7 +117,9 @@ export default function TaskForm({
   const [dayIndex, setDayIndex] = useState<number>(initDay);
   const [time, setTime] = useState(editTask?.time ?? "");
   const [endTime, setEndTime] = useState(editTask?.end_time ?? "");
-  const [isRecurring, setIsRecurring] = useState(editTask?.is_recurring ?? false);
+  const [isRecurring, setIsRecurring] = useState(
+    editTask?.is_recurring ?? false,
+  );
   const [conflict, setConflict] = useState<string | null>(null);
   const [timeError, setTimeError] = useState<string | null>(null);
 
@@ -135,27 +141,34 @@ export default function TaskForm({
       return;
     }
     const date = getDateForWeekday(dayIndex);
-    const result = findConflict(date, time, endTime, events, tasks, editTask?.id);
+    const result = findConflict(
+      date,
+      time,
+      endTime,
+      events,
+      tasks,
+      editTask?.id,
+    );
     setConflict(result);
   }, [dayIndex, time, endTime, events, tasks, editTask?.id]);
 
   const applyParsed = (data: ParsedVoiceInput) => {
-    if (data.title !== null) setTitle(data.title)
-    if (data.description !== null) setDescription(data.description ?? '')
-    if (data.dayIndex !== null) setDayIndex(data.dayIndex)
-    if (data.startTime !== null) setTime(data.startTime)
-    if (data.endTime !== null) setEndTime(data.endTime)
-    if (data.isRecurring !== null) setIsRecurring(data.isRecurring)
-  }
+    if (data.title !== null) setTitle(data.title);
+    if (data.description !== null) setDescription(data.description ?? "");
+    if (data.dayIndex !== null) setDayIndex(data.dayIndex);
+    if (data.startTime !== null) setTime(data.startTime);
+    if (data.endTime !== null) setEndTime(data.endTime);
+    if (data.isRecurring !== null) setIsRecurring(data.isRecurring);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!time || !endTime) {
-      setTimeError('יש למלא שעת התחלה ושעת סיום');
+      setTimeError("יש למלא שעת התחלה ושעת סיום");
       return;
     }
     if (endTime <= time) {
-      setTimeError('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
+      setTimeError("שעת הסיום חייבת להיות אחרי שעת ההתחלה");
       return;
     }
     setTimeError(null);

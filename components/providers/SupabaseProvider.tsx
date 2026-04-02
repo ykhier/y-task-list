@@ -1,65 +1,96 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
-interface AuthState {
-  user: User | null
-  loading: boolean
-  authError: string | null
-}
+const AUTH_PATHS = ['/login', '/signup', '/verify-otp']
 
-const UserContext = createContext<User | null>(null)
-
-async function signInWithRetry(
-  supabase: ReturnType<typeof createClient>,
-  attempts = 3,
-  delayMs = 1000,
-): Promise<{ user: User | null; error: string | null }> {
-  for (let i = 0; i < attempts; i++) {
-    const { data, error } = await supabase.auth.signInAnonymously()
-    if (data.user) return { user: data.user, error: null }
-    if (i < attempts - 1) await new Promise((r) => setTimeout(r, delayMs))
-    if (error) console.error(`signInAnonymously attempt ${i + 1} failed:`, error.message)
-  }
-  return { user: null, error: 'כישלון אימות' }
-}
+const UserContext    = createContext<User | null>(null)
+const AdminContext   = createContext<boolean>(false)
+const SignOutContext = createContext<() => Promise<void>>(async () => {})
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, loading: true, authError: null })
+  const [user, setUser]       = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const router   = useRouter()
+  const pathname = usePathname()
+
+  const fetchIsAdmin = async (userId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .single()
+    return data?.is_admin ?? false
+  }
 
   useEffect(() => {
     let initialResolved = false
 
-    // Only used for post-init auth changes (e.g. sign-out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!initialResolved) return // ignore INITIAL_SESSION — handled below
-      setState((prev) => ({ ...prev, user: session?.user ?? null }))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!initialResolved) return
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) {
+        const admin = await fetchIsAdmin(u.id)
+        setIsAdmin(admin)
+      } else {
+        setIsAdmin(false)
+      }
     })
 
-    // Determine initial auth state, then sign in anonymously if needed
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        initialResolved = true
-        setState({ user: session.user, loading: false, authError: null })
-      } else {
-        const { user, error } = await signInWithRetry(supabase)
-        initialResolved = true
-        if (user) {
-          setState({ user, loading: false, authError: null })
-        } else {
-          setState({ user: null, loading: false, authError: error })
-        }
+      initialResolved = true
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) {
+        const admin = await fetchIsAdmin(u.id)
+        setIsAdmin(admin)
       }
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (state.loading) {
+  useEffect(() => {
+    if (loading) return
+
+    // Not logged in → send to login
+    if (!user && !AUTH_PATHS.includes(pathname)) {
+      router.push('/login')
+      return
+    }
+
+    // Admin without OTP verified → sign out and send to login
+    // (skip this check on auth pages so the login→verify-otp flow can complete)
+    if (user && isAdmin && !AUTH_PATHS.includes(pathname)) {
+      const otpVerified = typeof window !== 'undefined'
+        && localStorage.getItem('otp_verified') === user.id
+      if (!otpVerified) {
+        supabase.auth.signOut().then(() => router.push('/login'))
+        return
+      }
+    }
+
+    // Non-admin trying to access /admin → send home
+    if (user && !isAdmin && pathname.startsWith('/admin')) {
+      router.push('/')
+    }
+  }, [loading, user, isAdmin, pathname, router])
+
+  const signOut = async () => {
+    if (typeof window !== 'undefined') localStorage.removeItem('otp_verified')
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -70,29 +101,18 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (state.authError && !state.user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-sm w-full rounded-xl border border-red-200 bg-red-50 p-6 flex flex-col gap-3 text-center">
-          <p className="font-semibold text-red-700">לא ניתן להתחבר לשירות</p>
-          <p className="text-sm text-red-600">
-            יש להפעיל <strong>Anonymous Sign-In</strong> בהגדרות Supabase:
-          </p>
-          <p className="text-xs text-red-500 bg-red-100 rounded px-3 py-2 font-mono">
-            Authentication → Providers → Anonymous → Enable
-          </p>
-          <button
-            className="mt-2 text-sm text-red-700 underline underline-offset-2"
-            onClick={() => window.location.reload()}
-          >
-            נסה שוב
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return <UserContext.Provider value={state.user}>{children}</UserContext.Provider>
+  return (
+    <SignOutContext.Provider value={signOut}>
+      <AdminContext.Provider value={isAdmin}>
+        <UserContext.Provider value={user}>{children}</UserContext.Provider>
+      </AdminContext.Provider>
+    </SignOutContext.Provider>
+  )
 }
 
 export const useSupabaseUser = () => useContext(UserContext)
+export const useIsAdmin      = () => useContext(AdminContext)
+export const useSupabaseAuth = () => ({
+  user:    useContext(UserContext),
+  signOut: useContext(SignOutContext),
+})

@@ -64,7 +64,7 @@ export function useEvents() {
   }, [user, fetchEvents])
 
   const addEvent = useCallback(async (data: NewEvent): Promise<{ data: CalendarEvent | null; error: string | null }> => {
-    if (!user) return { data: null, error: 'משתמש לא מחובר. יש להפעיל Anonymous Sign-In ב-Supabase.' }
+    if (!user) return { data: null, error: 'משתמש לא מחובר.' }
     const { data: event, error } = await supabase
       .from('sessions')
       .insert({ ...data, user_id: user.id })

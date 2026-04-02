@@ -1,33 +1,80 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, CalendarDays } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-function GoogleIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-    </svg>
-  )
-}
+import PasswordInput from '@/components/ui/PasswordInput'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail]               = useState('')
-  const [password, setPassword]         = useState('')
-  const [loading, setLoading]           = useState(false)
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => setLoading(false), 1500)
+    setError(null)
+
+    const supabase = createClient()
+    const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (authError) {
+      const msg = authError.message.toLowerCase()
+      const code = (authError as { code?: string }).code ?? ''
+      const isUnconfirmed =
+        msg.includes('email not confirmed') ||
+        msg.includes('email_not_confirmed') ||
+        code === 'email_not_confirmed'
+      setError(
+        isUnconfirmed
+          ? 'יש לאמת את האימייל לפני ההתחברות — בדוק את תיבת הדואר שלך'
+          : 'אימייל או סיסמא שגויים'
+      )
+      setLoading(false)
+      return
+    }
+
+    const userId      = signInData.user?.id
+    const accessToken = signInData.session?.access_token
+
+    if (userId && accessToken) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profile?.is_admin) {
+        // Send OTP now while we have a guaranteed-fresh session token
+        const res = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+
+        if (!res.ok) {
+          const data = await res.json()
+          setError(data.error ?? 'שגיאה בשליחת קוד אימות')
+          // Sign out so they don't get stuck
+          await supabase.auth.signOut()
+          setLoading(false)
+          return
+        }
+
+        // Store the token so verify-otp page can use it for Bearer auth
+        sessionStorage.setItem('otp_token', accessToken)
+        router.push('/verify-otp')
+        return
+      }
+    }
+
+    router.push('/')
   }
 
   return (
@@ -53,22 +100,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Google button */}
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 cursor-pointer"
-          >
-            <GoogleIcon />
-            המשך עם Google
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-xs text-slate-400 font-medium">או עם אימייל</span>
-            <div className="flex-1 h-px bg-slate-200" />
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
@@ -86,36 +117,21 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700">סיסמא</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-blue-500 hover:text-blue-600 font-medium"
-                >
-                  שכחת סיסמא?
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-10 text-sm pe-10"
-                  dir="ltr"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 end-0 px-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <Label htmlFor="password" className="text-sm font-medium text-slate-700">סיסמא</Label>
+              <PasswordInput
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-10"
+              />
             </div>
+
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
 
             <Button type="submit" className="w-full h-10 mt-1 text-sm font-semibold" disabled={loading}>
               {loading ? (
@@ -139,7 +155,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-4">
           WeekFlow © 2026 · כל הזכויות שמורות
         </p>
