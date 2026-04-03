@@ -42,10 +42,9 @@ const DAY_OPTIONS = [
   { label: 'שבת',   value: 6 },
 ]
 
-function getDateForWeekday(dayIndex: number): string {
-  const now = new Date()
-  const target = new Date(now)
-  target.setDate(now.getDate() + (dayIndex - now.getDay()))
+function getDateForWeekday(dayIndex: number, anchor: Date): string {
+  const target = new Date(anchor)
+  target.setDate(anchor.getDate() + (dayIndex - anchor.getDay()))
   return toDateStr(target)
 }
 
@@ -218,9 +217,15 @@ export default function EventModal({
     e.preventDefault()
     if (!title.trim()) return
 
+    const anchor = editEvent
+      ? new Date(editEvent.date + 'T00:00:00')
+      : initialDate
+        ? new Date(initialDate + 'T00:00:00')
+        : new Date()
+
     const lectureData: EventData = {
       title:        title.trim(),
-      date:         getDateForWeekday(dayIndex),
+      date:         getDateForWeekday(dayIndex, anchor),
       start_time:   startTime,
       end_time:     endTime,
       source:       'manual',
@@ -233,7 +238,7 @@ export default function EventModal({
       tutorialEnabled && !editEvent
         ? {
             title:        `תרגול – ${title.trim()}`,
-            date:         getDateForWeekday(tutorialDayIndex),
+            date:         getDateForWeekday(tutorialDayIndex, anchor),
             start_time:   tutorialStart,
             end_time:     tutorialEnd,
             source:       'manual',

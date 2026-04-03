@@ -63,7 +63,7 @@ All state lives in hooks composed at the root page ([app/page.tsx](app/page.tsx)
 4. API routes use `createAdminClient()` (service role key) with `adminClient.auth.getUser(token)` to verify the Bearer token — **`SUPABASE_SERVICE_ROLE_KEY` is required**
 5. OTP codes stored in `otp_codes` table (1-minute expiry); emails sent via Resend if `RESEND_API_KEY` is set, otherwise logged to console
 
-`middleware.ts` runs on every request (excluding static assets) and calls `supabase.auth.getUser()` to refresh the session cookie — required for SSR auth to work correctly with `@supabase/ssr`.
+`middleware.ts` runs on every request (excluding static assets) and calls `supabase.auth.getUser()` to refresh the session cookie — required for SSR auth to work correctly with `@supabase/ssr`. Routes under `/api/cron/` are excluded from the auth redirect so the cron job can be called without a session.
 
 **Supabase dashboard settings:** In Authentication → Providers → Email, disable "Confirm email" if you don't want users to verify their email before logging in. The `/auth/callback` route handles the verification code exchange if email confirmation is enabled.
 
@@ -185,6 +185,10 @@ The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.t
 - Events linked to **completed tasks** are skipped (`ev.task_id && completedTaskIds.has(ev.task_id)`)
 - Events linked to **the task being edited** are skipped (`ev.task_id === excludeTaskId`) — prevents a task from conflicting with its own linked calendar event
 - Completed tasks themselves are skipped in the tasks loop
+
+### EventModal date anchor
+
+`EventModal` uses a day-of-week selector (ראשון–שבת), not a date picker. On submit, `getDateForWeekday(dayIndex, anchor)` converts the selected day to an actual date. The `anchor` is derived from `initialDate` (when adding) or `editEvent.date` (when editing) — **not** from `new Date()`/today. This ensures that adding or editing a lecture while viewing a different week saves to the correct week, not the current one.
 
 ### Voice input
 

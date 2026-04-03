@@ -28,9 +28,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
   const isAuthPath = pathname === '/login' || pathname === '/signup' || pathname === '/verify-otp'
+  const isCronPath = pathname.startsWith('/api/cron/')
 
   // Not logged in → redirect to login immediately (server-side, no flash)
-  if (!user && !isAuthPath) {
+  if (!user && !isAuthPath && !isCronPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
