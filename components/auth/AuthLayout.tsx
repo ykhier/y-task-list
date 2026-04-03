@@ -1,4 +1,8 @@
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -14,5 +18,5 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </p>
       </div>
     </div>
-  )
+  );
 }

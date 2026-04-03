@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Spinner from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -102,7 +103,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          <Spinner className="h-8 w-8 text-primary" />
           <p className="text-sm text-muted-foreground">מתחבר...</p>
         </div>
       </div>
