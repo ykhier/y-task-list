@@ -11,6 +11,7 @@ interface NavbarMobileDrawerProps {
   onTabChange: (tab: TabView) => void
   onSignOut: () => Promise<void>
   isAdmin?: boolean
+  fullName?: string
 }
 
 export default function NavbarMobileDrawer({
@@ -20,6 +21,7 @@ export default function NavbarMobileDrawer({
   onTabChange,
   onSignOut,
   isAdmin,
+  fullName,
 }: NavbarMobileDrawerProps) {
   const router = useRouter()
   return (
@@ -53,7 +55,11 @@ export default function NavbarMobileDrawer({
           </div>
           <div className="relative flex-1 min-w-0">
             <p className="text-lg font-bold text-slate-800 leading-tight tracking-tight">WeekFlow</p>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">מתכנן שבועי חכם</p>
+            {fullName ? (
+              <p className="text-xs text-blue-500 font-medium mt-0.5 truncate">{fullName}</p>
+            ) : (
+              <p className="text-xs text-slate-400 font-medium mt-0.5">מתכנן שבועי חכם</p>
+            )}
           </div>
           <button
             onClick={onClose}

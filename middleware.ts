@@ -23,8 +23,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refreshes the session cookie if it's expired — must be called on every request
-  await supabase.auth.getUser()
+  // Refreshes the session cookie — must be called on every request
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+  const isAuthPath = pathname === '/login' || pathname === '/signup' || pathname === '/verify-otp'
+
+  // Not logged in → redirect to login immediately (server-side, no flash)
+  if (!user && !isAuthPath) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // Already logged in → don't show login/signup pages
+  if (user && (pathname === '/login' || pathname === '/signup')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }

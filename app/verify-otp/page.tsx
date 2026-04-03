@@ -6,7 +6,7 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
+import Spinner from "@/components/ui/Spinner";
 
 export default function VerifyOtpPage() {
   const [code, setCode] = useState("");
@@ -99,14 +99,12 @@ export default function VerifyOtpPage() {
     });
 
     if (res.ok) {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) localStorage.setItem("otp_verified", user.id);
+      const userId = sessionStorage.getItem("otp_user_id");
+      if (userId) localStorage.setItem("otp_verified", userId);
       sessionStorage.removeItem("otp_token");
+      sessionStorage.removeItem("otp_user_id");
       if (timerRef.current) clearInterval(timerRef.current);
-      router.push("/");
+      window.location.href = "/";
     } else {
       const data = await res.json();
       setError(data.error ?? "קוד שגוי");
@@ -180,25 +178,7 @@ export default function VerifyOtpPage() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
+                  <Spinner />
                   מאמת...
                 </span>
               ) : (

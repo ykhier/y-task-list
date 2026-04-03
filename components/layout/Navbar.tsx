@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarDays, Menu, LogOut, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, Menu, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import NavbarDesktopTabs from "./navbar/NavbarDesktopTabs";
 import NavbarMobileDrawer from "./navbar/NavbarMobileDrawer";
@@ -9,6 +9,7 @@ import NavbarMobileTabBadge from "./navbar/NavbarMobileTabBadge";
 import {
   useSupabaseAuth,
   useIsAdmin,
+  useSupabaseUser,
 } from "@/components/providers/SupabaseProvider";
 import type { TabView } from "@/types";
 
@@ -19,17 +20,20 @@ interface NavbarProps {
 
 export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userDropOpen, setUserDropOpen] = useState(false);
+  const userDropRef = useRef<HTMLDivElement>(null);
   const { signOut } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
+  const user = useSupabaseUser();
+  const fullName = user?.user_metadata?.full_name as string | undefined;
+  const email = user?.email ?? "";
   const router = useRouter();
 
   useEffect(() => {
     if (!menuOpen) return;
-
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
     };
-
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
@@ -40,6 +44,22 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!userDropOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (userDropRef.current && !userDropRef.current.contains(e.target as Node)) {
+        setUserDropOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUserDropOpen(false); };
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [userDropOpen]);
 
   const handleTabChange = (tab: TabView) => {
     onTabChange(tab);
@@ -58,30 +78,61 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
           </span>
         </div>
 
-        <NavbarDesktopTabs activeTab={activeTab} onTabChange={onTabChange} />
+        <NavbarDesktopTabs
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          isAdmin={isAdmin}
+          onAdminClick={() => router.push("/admin")}
+        />
         <NavbarMobileTabBadge activeTab={activeTab} />
 
-        {/* Desktop admin */}
-        {isAdmin && (
+        {/* Desktop user dropdown */}
+        <div className="hidden sm:block relative ms-auto flex-shrink-0" ref={userDropRef}>
           <button
-            onClick={() => router.push("/admin")}
-            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150 cursor-pointer flex-shrink-0"
-            aria-label="ניהול משתמשים"
-            title="ניהול משתמשים"
+            onClick={() => setUserDropOpen((v) => !v)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-colors duration-150 cursor-pointer"
           >
-            <Shield className="h-4 w-4" />
+            {fullName && (
+              <span className="text-sm text-slate-700 font-medium max-w-[120px] truncate">
+                {fullName}
+              </span>
+            )}
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-[10px] font-bold text-white leading-none">
+                {(fullName ?? email).charAt(0).toUpperCase()}
+              </span>
+            </div>
           </button>
-        )}
 
-        {/* Desktop logout */}
-        <button
-          onClick={signOut}
-          className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-150 cursor-pointer flex-shrink-0"
-          aria-label="התנתק"
-          title="התנתק"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+          {userDropOpen && (
+            <div className="absolute left-0 top-full mt-2 w-64 rounded-2xl bg-white border border-slate-100 shadow-xl shadow-slate-200/60 z-50 overflow-hidden">
+              {/* User info header */}
+              <div className="px-4 py-4 border-b border-slate-100 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  {fullName && (
+                    <p className="text-sm font-semibold text-slate-800 truncate">{fullName}</p>
+                  )}
+                  <p className="text-xs text-slate-400 truncate">{email}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-200">
+                  <span className="text-sm font-bold text-white leading-none">
+                    {(fullName ?? email).charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              {/* Sign out */}
+              <div className="p-2">
+                <button
+                  onClick={() => { setUserDropOpen(false); signOut(); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer font-medium"
+                >
+                  <LogOut className="h-4 w-4 flex-shrink-0" />
+                  התנתק
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <button
           onClick={() => setMenuOpen(true)}
@@ -99,6 +150,7 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
         onTabChange={handleTabChange}
         onSignOut={signOut}
         isAdmin={isAdmin}
+        fullName={fullName}
       />
     </>
   );

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import Spinner from "@/components/ui/Spinner";
 import TaskItem from "./TaskItem";
 import TaskListDialogs from "./task-list/TaskListDialogs";
 import TaskListHeader from "./task-list/TaskListHeader";
@@ -96,7 +97,7 @@ export default function TaskList({
       <div className="flex-1 overflow-y-auto py-2">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-5 w-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+            <Spinner variant="ring" className="h-5 w-5 border-blue-500" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">

@@ -26,7 +26,8 @@ export async function POST(request: Request) {
 
   if (!otp) return NextResponse.json({ error: 'קוד שגוי או פג תוקף' }, { status: 400 })
 
-  await adminClient.from('otp_codes').delete().eq('id', otp.id)
+  // fire and forget — don't block the response on cleanup
+  adminClient.from('otp_codes').delete().eq('id', otp.id)
 
   return NextResponse.json({ ok: true })
 }

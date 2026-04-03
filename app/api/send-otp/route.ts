@@ -14,18 +14,18 @@ export async function POST(request: Request) {
   const { data: { user }, error } = await adminClient.auth.getUser(token)
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('is_admin, full_name')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
   const code = Math.floor(100000 + Math.random() * 900000).toString()
   const expiresAt = new Date(Date.now() + 60 * 1000)
 
-  await adminClient.from('otp_codes').delete().eq('user_id', user.id)
+  // run profile check and old-code cleanup in parallel
+  const [profileResult] = await Promise.all([
+    adminClient.from('profiles').select('is_admin, full_name').eq('id', user.id).single(),
+    adminClient.from('otp_codes').delete().eq('user_id', user.id),
+  ])
+
+  const profile = profileResult.data
+  if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   await adminClient.from('otp_codes').insert({
     user_id: user.id,
     code,
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
 
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
+    // fire and forget — don't block the response on email delivery
+    resend.emails.send({
       from: 'WeekFlow <onboarding@resend.dev>',
       to: user.email!,
       subject: 'קוד אימות WeekFlow',

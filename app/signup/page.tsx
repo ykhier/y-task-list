@@ -1,79 +1,68 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { CalendarDays, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import PasswordInput from '@/components/ui/PasswordInput'
-import { createClient } from '@/lib/supabase/client'
-
-function PasswordStrength({ password }: { password: string }) {
-  const checks = [
-    { label: 'לפחות 8 תווים', ok: password.length >= 8 },
-    { label: 'אות גדולה', ok: /[A-Z]/.test(password) },
-    { label: 'מספר', ok: /\d/.test(password) },
-  ]
-  if (!password) return null
-  return (
-    <div className="flex flex-col gap-1 mt-1">
-      {checks.map((c) => (
-        <div key={c.label} className={`flex items-center gap-1.5 text-xs transition-colors ${c.ok ? 'text-green-600' : 'text-slate-400'}`}>
-          <Check className={`h-3 w-3 ${c.ok ? 'opacity-100' : 'opacity-30'}`} />
-          {c.label}
-        </div>
-      ))}
-    </div>
-  )
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { CalendarDays, Check } from "lucide-react";
+import Spinner from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import PasswordInput from "@/components/ui/PasswordInput";
+import PasswordStrength from "@/components/ui/PasswordStrength";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
-  const [fullName, setFullName]                 = useState('')
-  const [email, setEmail]                       = useState('')
-  const [password, setPassword]                 = useState('')
-  const [confirmPassword, setConfirmPassword]   = useState('')
-  const [loading, setLoading]                   = useState(false)
-  const [error, setError]                       = useState<string | null>(null)
-  const [success, setSuccess]                   = useState(false)
-  const router = useRouter()
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
-  const passwordMatch = password && confirmPassword && password === confirmPassword
+  const passwordMatch =
+    password && confirmPassword && password === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!passwordMatch) return
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    if (!passwordMatch) return;
+    setLoading(true);
+    setError(null);
 
-    const supabase = createClient()
+    const supabase = createClient();
     const { error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
-    })
+    });
 
     if (authError) {
-      const msg = authError.message.toLowerCase()
+      const msg = authError.message.toLowerCase();
       setError(
-        msg.includes('rate limit') || msg.includes('email rate')
-          ? 'נסית להירשם יותר מדי פעמים. המתן דקה ונסה שוב'
-          : msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already')
-          ? 'כתובת האימייל כבר רשומה במערכת'
-          : 'אירעה שגיאה בהרשמה. נסה שוב'
-      )
-      setLoading(false)
+        msg.includes("rate limit") || msg.includes("email rate")
+          ? "נסית להירשם יותר מדי פעמים. המתן דקה ונסה שוב"
+          : msg.includes("already registered") ||
+              msg.includes("already been registered") ||
+              msg.includes("user already")
+            ? "כתובת האימייל כבר רשומה במערכת"
+            : "אירעה שגיאה בהרשמה. נסה שוב",
+      );
+      setLoading(false);
     } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (signInError) {
         // Email confirmation required — show success screen instead of redirecting
-        setSuccess(true)
+        setSuccess(true);
       } else {
-        router.push('/')
+        router.push("/");
       }
     }
-  }
+  };
 
   if (success) {
     return (
@@ -85,16 +74,18 @@ export default function SignupPage() {
             </div>
             <h1 className="text-xl font-bold text-slate-800">נרשמת בהצלחה!</h1>
             <p className="text-sm text-slate-500">
-              החשבון נוצר בהצלחה עבור <strong>{email}</strong>.
-              כעת תוכל להתחבר.
+              החשבון נוצר בהצלחה עבור <strong>{email}</strong>. כעת תוכל להתחבר.
             </p>
-            <Button className="w-full h-10 mt-2 text-sm font-semibold" onClick={() => router.push('/login')}>
+            <Button
+              className="w-full h-10 mt-2 text-sm font-semibold"
+              onClick={() => router.push("/login")}
+            >
               עבור להתחברות
             </Button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,15 +98,18 @@ export default function SignupPage() {
 
       <div className="relative w-full max-w-md">
         <div className="rounded-2xl bg-white shadow-xl border border-slate-100 p-8">
-
           {/* Logo */}
           <div className="flex flex-col items-center gap-3 mb-8">
             <div className="h-12 w-12 rounded-2xl bg-blue-500 flex items-center justify-center shadow-md shadow-blue-200">
               <CalendarDays className="h-6 w-6 text-white" />
             </div>
             <div className="text-center">
-              <h1 className="text-xl font-bold text-slate-800">צור חשבון חדש</h1>
-              <p className="text-sm text-slate-500 mt-1">הצטרף ל-WeekFlow בחינם</p>
+              <h1 className="text-xl font-bold text-slate-800">
+                צור חשבון חדש
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                הצטרף ל-WeekFlow בחינם
+              </p>
             </div>
           </div>
 
@@ -123,11 +117,16 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Full name */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name" className="text-sm font-medium text-slate-700">שם מלא</Label>
+              <Label
+                htmlFor="name"
+                className="text-sm font-medium text-slate-700"
+              >
+                שם מלא
+              </Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="ישראל ישראלי"
+                placeholder="שם מלא"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -137,7 +136,12 @@ export default function SignupPage() {
 
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-700">אימייל</Label>
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-slate-700"
+              >
+                אימייל
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -152,7 +156,12 @@ export default function SignupPage() {
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700">סיסמא</Label>
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-slate-700"
+              >
+                סיסמא
+              </Label>
               <PasswordInput
                 id="password"
                 value={password}
@@ -165,7 +174,12 @@ export default function SignupPage() {
 
             {/* Confirm password */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm" className="text-sm font-medium text-slate-700">אימות סיסמא</Label>
+              <Label
+                htmlFor="confirm"
+                className="text-sm font-medium text-slate-700"
+              >
+                אימות סיסמא
+              </Label>
               <PasswordInput
                 id="confirm"
                 value={confirmPassword}
@@ -173,10 +187,10 @@ export default function SignupPage() {
                 required
                 className={`h-10 ${
                   confirmPassword && !passwordMatch
-                    ? 'border-red-300 focus-visible:ring-red-400'
+                    ? "border-red-300 focus-visible:ring-red-400"
                     : passwordMatch
-                    ? 'border-green-300 focus-visible:ring-green-400'
-                    : ''
+                      ? "border-green-300 focus-visible:ring-green-400"
+                      : ""
                 }`}
               />
               {confirmPassword && !passwordMatch && (
@@ -197,20 +211,22 @@ export default function SignupPage() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
+                  <Spinner />
                   נרשם...
                 </span>
-              ) : 'צור חשבון'}
+              ) : (
+                "צור חשבון"
+              )}
             </Button>
           </form>
 
           {/* Login link */}
           <p className="text-center text-sm text-slate-500 mt-6">
-            כבר יש לך חשבון?{' '}
-            <Link href="/login" className="text-blue-500 hover:text-blue-600 font-semibold">
+            כבר יש לך חשבון?{" "}
+            <Link
+              href="/login"
+              className="text-blue-500 hover:text-blue-600 font-semibold"
+            >
               התחבר
             </Link>
           </p>
@@ -221,5 +237,5 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }

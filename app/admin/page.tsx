@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Shield, ShieldOff, Trash2, ArrowRight } from 'lucide-react'
+import Spinner from '@/components/ui/Spinner'
 import { Badge } from '@/components/ui/badge'
 
 type Profile = {
@@ -78,7 +79,7 @@ export default function AdminPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="h-8 w-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+            <Spinner variant="ring" className="h-8 w-8 border-4 border-blue-500" />
           </div>
         ) : users.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center text-slate-400">
