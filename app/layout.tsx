@@ -11,14 +11,15 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
-  viewportFit: 'cover',
-}
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "WeekFlow",
   description: "Productivity planning with calendar + tasks in one place",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
