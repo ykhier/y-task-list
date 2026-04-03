@@ -122,6 +122,10 @@ create policy "tutorials: own rows"
 -- ALTER TABLE public.sessions  ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
 -- ALTER TABLE public.tutorials ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
 
+-- ── MIGRATION: daily digest settings (run if upgrading) ──────
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS digest_enabled boolean NOT NULL DEFAULT false;
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notification_hour integer CHECK (notification_hour BETWEEN 0 AND 23);
+
 -- ── REALTIME ─────────────────────────────────────────────────
 -- Enable realtime in Supabase dashboard:
 -- Database → Replication → Enable for tasks, sessions, tutorials

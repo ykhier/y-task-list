@@ -9,8 +9,11 @@ type TimedEntry = {
   end_time: string
 }
 
+const hhmm = (t: string) => t.slice(0, 5)
+
 export function overlaps(startA: string, endA: string, startB: string, endB: string) {
-  return startA < endB && endA > startB
+  const [a0, a1, b0, b1] = [startA, endA, startB, endB].map(hhmm)
+  return a0 < b1 && a1 > b0
 }
 
 export function targetRecurringDate(weekDays: WeekDay[], dateStr: string) {

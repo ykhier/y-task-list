@@ -209,6 +209,9 @@ export function usePlannerPage() {
     newStartTime: string,
     newEndTime: string,
   ) => {
+    const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id))
+    const visibleEvents = events.filter((ev) => !ev.task_id || !completedTaskIds.has(ev.task_id))
+
     if (isTutorial) {
       if (hasTimedConflict(tutorials, newDate, newStartTime, newEndTime, eventId)) return
       await updateTutorial(eventId, { date: newDate, start_time: newStartTime, end_time: newEndTime })
@@ -216,14 +219,14 @@ export function usePlannerPage() {
     }
 
     if (isTaskEvent && taskId) {
-      if (hasTimedConflict(events, newDate, newStartTime, newEndTime, eventId)) return
+      if (hasTimedConflict(visibleEvents, newDate, newStartTime, newEndTime, eventId)) return
       await updateTask(taskId, { date: newDate, time: newStartTime })
       return
     }
 
     const event = events.find((e) => e.id === eventId)
     if (!event) return
-    if (hasTimedConflict(events, newDate, newStartTime, newEndTime, eventId)) return
+    if (hasTimedConflict(visibleEvents, newDate, newStartTime, newEndTime, eventId)) return
 
     await updateEvent(eventId, { date: newDate, start_time: newStartTime, end_time: newEndTime })
   }, [events, tutorials, updateEvent, updateTask, updateTutorial])
@@ -232,8 +235,16 @@ export function usePlannerPage() {
     data: EventPayload,
     tutorial?: EventPayload,
   ) => {
-    if (hasTimedConflict(events, data.date, data.start_time, data.end_time, editingEvent?.id)) {
-      setEventError('קיים אירוע חופף בשעות אלו. אנא בחר שעה אחרת.')
+    const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id))
+    const visibleEvents = events.filter((ev) => !ev.task_id || !completedTaskIds.has(ev.task_id))
+    const conflicting = visibleEvents.find(
+      (ev) =>
+        (!editingEvent?.id || ev.id !== editingEvent.id) &&
+        ev.date === data.date &&
+        overlaps(data.start_time, data.end_time, ev.start_time, ev.end_time),
+    )
+    if (conflicting) {
+      setEventError(`חופף עם "${conflicting.title}" (${conflicting.start_time}–${conflicting.end_time}). אנא בחר שעה אחרת.`)
       return
     }
 

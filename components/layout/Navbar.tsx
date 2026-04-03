@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Menu, LogOut } from "lucide-react";
+import { CalendarDays, Menu, LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import NavbarDesktopTabs from "./navbar/NavbarDesktopTabs";
 import NavbarMobileDrawer from "./navbar/NavbarMobileDrawer";
 import NavbarMobileTabBadge from "./navbar/NavbarMobileTabBadge";
+import SettingsModal from "./SettingsModal";
 import {
   useSupabaseAuth,
   useIsAdmin,
@@ -21,6 +22,7 @@ interface NavbarProps {
 export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropOpen, setUserDropOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const userDropRef = useRef<HTMLDivElement>(null);
   const { signOut } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
@@ -48,11 +50,16 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
   useEffect(() => {
     if (!userDropOpen) return;
     const onClickOutside = (e: MouseEvent) => {
-      if (userDropRef.current && !userDropRef.current.contains(e.target as Node)) {
+      if (
+        userDropRef.current &&
+        !userDropRef.current.contains(e.target as Node)
+      ) {
         setUserDropOpen(false);
       }
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setUserDropOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setUserDropOpen(false);
+    };
     document.addEventListener("mousedown", onClickOutside);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -87,7 +94,10 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
         <NavbarMobileTabBadge activeTab={activeTab} />
 
         {/* Desktop user dropdown */}
-        <div className="hidden sm:block relative ms-auto flex-shrink-0" ref={userDropRef}>
+        <div
+          className="hidden sm:block relative flex-shrink-0"
+          ref={userDropRef}
+        >
           <button
             onClick={() => setUserDropOpen((v) => !v)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-colors duration-150 cursor-pointer"
@@ -110,7 +120,9 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
               <div className="px-4 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   {fullName && (
-                    <p className="text-sm font-semibold text-slate-800 truncate">{fullName}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      {fullName}
+                    </p>
                   )}
                   <p className="text-xs text-slate-400 truncate">{email}</p>
                 </div>
@@ -120,14 +132,38 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
                   </span>
                 </div>
               </div>
-              {/* Sign out */}
-              <div className="p-2">
+              {/* Actions */}
+              <div className="p-2 flex flex-col gap-0.5">
                 <button
-                  onClick={() => { setUserDropOpen(false); signOut(); }}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer font-medium"
+                  onClick={() => {
+                    setUserDropOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150 cursor-pointer font-medium"
                 >
-                  <LogOut className="h-4 w-4 flex-shrink-0" />
-                  התנתק
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Settings className="h-3.5 w-3.5 text-slate-500" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium text-slate-700">הגדרות</p>
+                  </div>
+                </button>
+
+                <div className="mx-2 my-1 h-px bg-slate-100" />
+
+                <button
+                  onClick={() => {
+                    setUserDropOpen(false);
+                    signOut();
+                  }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer font-medium group"
+                >
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors duration-150">
+                    <LogOut className="h-3.5 w-3.5 text-slate-500 group-hover:text-red-500 transition-colors duration-150" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-sm font-medium">התנתק</p>
+                  </div>
                 </button>
               </div>
             </div>
@@ -149,8 +185,17 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
         onClose={() => setMenuOpen(false)}
         onTabChange={handleTabChange}
         onSignOut={signOut}
+        onSettingsOpen={() => {
+          setMenuOpen(false);
+          setSettingsOpen(true);
+        }}
         isAdmin={isAdmin}
         fullName={fullName}
+      />
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </>
   );

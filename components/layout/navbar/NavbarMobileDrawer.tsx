@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronLeft, LogOut, Shield, X } from 'lucide-react'
+import { CalendarDays, ChevronLeft, LogOut, Settings, Shield, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { TabView } from '@/types'
@@ -10,6 +10,7 @@ interface NavbarMobileDrawerProps {
   onClose: () => void
   onTabChange: (tab: TabView) => void
   onSignOut: () => Promise<void>
+  onSettingsOpen: () => void
   isAdmin?: boolean
   fullName?: string
 }
@@ -20,6 +21,7 @@ export default function NavbarMobileDrawer({
   onClose,
   onTabChange,
   onSignOut,
+  onSettingsOpen,
   isAdmin,
   fullName,
 }: NavbarMobileDrawerProps) {
@@ -139,6 +141,13 @@ export default function NavbarMobileDrawer({
               ניהול משתמשים
             </button>
           )}
+          <button
+            onClick={onSettingsOpen}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150 cursor-pointer text-sm font-medium"
+          >
+            <Settings style={{ width: 16, height: 16 }} />
+            הגדרות
+          </button>
           <button
             onClick={onSignOut}
             className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer text-sm font-medium"

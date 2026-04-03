@@ -73,6 +73,8 @@ Schema is in [supabase/schema.sql](supabase/schema.sql). Five tables:
 
 - `tasks` — `time`/`end_time` (HH:MM), `is_recurring` (auto-advances past recurring tasks to current week on fetch)
 - `sessions` — calendar events; `source in ('manual','task')`; task-linked rows have `task_id` FK
+
+> **DB time format gotcha:** PostgreSQL stores `time` columns as `HH:MM:SS` (with seconds). Frontend forms produce `HH:MM`. `overlaps()` in `lib/planner/page-helpers.ts` normalizes all inputs with `.slice(0, 5)` — never compare raw DB time strings directly, as `"10:00" < "10:00:00"` is `true` in JS, causing false overlap detection.
 - `tutorials` — separate event type linked optionally to a session via `session_id` FK
 - `profiles` — one row per user; `is_admin boolean NOT NULL DEFAULT false`; `full_name`
 - `otp_codes` — admin 2FA codes: `user_id`, `code` (6 digits), `expires_at` (1-minute TTL); old codes are deleted before inserting a new one
