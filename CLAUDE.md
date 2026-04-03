@@ -123,7 +123,10 @@ components/
       task-list-utils.ts
     TaskItem.tsx, TaskForm.tsx
   providers/          — SupabaseProvider
-  ui/                 — shadcn/ui primitives (badge, button, dialog, etc.)
+  ui/
+    Spinner.tsx       — two variants: `svg` (default, SVG arc spinner) and `ring` (CSS border spinner); accepts `className` for sizing (default `h-4 w-4`)
+    VoiceInputButton.tsx
+    (+ shadcn/ui primitives: badge, button, dialog, etc.)
 hooks/
   planner/
     usePlannerPage.ts — page-level hook: modal state, conflict detection, calendar/event/tutorial actions
