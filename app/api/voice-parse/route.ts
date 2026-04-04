@@ -4,11 +4,10 @@ import { wrapOpenAI } from 'langsmith/wrappers'
 import { traceable } from 'langsmith/traceable'
 import { createClient } from '@/lib/supabase/server'
 
-const openai = wrapOpenAI(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
-
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
 export async function POST(req: NextRequest) {
+  const openai = wrapOpenAI(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userEmail = user?.email ?? 'unknown'
