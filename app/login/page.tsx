@@ -98,7 +98,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="text-sm font-medium text-slate-700"
               >
-                בבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבבב אימייל
+                אימייל
               </Label>
               <Input
                 id="email"
