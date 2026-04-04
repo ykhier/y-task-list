@@ -1,6 +1,6 @@
-# 📅 WeekFlow – Full-Stack Weekly Planner
+# 📅 WeekFlow - Full-Stack Weekly Planner
 
-🌐 **Live Demo:** https://y-task-list.vercel.app/
+🌐 **Website Link:** https://y-task-list.vercel.app/
 
 WeekFlow is a full-stack web application for managing weekly schedules, tasks, and recurring events.  
 It combines calendar planning, task management, and AI-powered features in a single responsive platform.
