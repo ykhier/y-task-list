@@ -23,6 +23,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # required for admin OTP routes (/api/send-otp, /api/verify-otp)
 OPENAI_API_KEY=...              # required for voice input (/api/voice-parse)
 RESEND_API_KEY=...              # optional — OTP emails fall back to console.log without it
+CRON_SECRET=...                 # required for /api/cron/daily-digest (verified via x-cron-secret header)
 LANGCHAIN_TRACING_V2=true       # optional — enables LangSmith tracing for voice API calls
 LANGCHAIN_API_KEY=...           # required if tracing enabled
 LANGCHAIN_PROJECT=...           # LangSmith project name
@@ -76,12 +77,21 @@ Schema is in [supabase/schema.sql](supabase/schema.sql). Five tables:
 
 > **DB time format gotcha:** PostgreSQL stores `time` columns as `HH:MM:SS` (with seconds). Frontend forms produce `HH:MM`. `overlaps()` in `lib/planner/page-helpers.ts` normalizes all inputs with `.slice(0, 5)` — never compare raw DB time strings directly, as `"10:00" < "10:00:00"` is `true` in JS, causing false overlap detection.
 - `tutorials` — separate event type linked optionally to a session via `session_id` FK
-- `profiles` — one row per user; `is_admin boolean NOT NULL DEFAULT false`; `full_name`
+- `profiles` — one row per user; `is_admin boolean NOT NULL DEFAULT false`; `full_name`; `email`; `digest_enabled boolean`; `notification_hour int` (0–23, Israel time) — used by the daily digest cron
 - `otp_codes` — admin 2FA codes: `user_id`, `code` (6 digits), `expires_at` (1-minute TTL); old codes are deleted before inserting a new one
 
 Run the schema SQL in the Supabase dashboard to set up a new project.
 
 Realtime must be enabled in the Supabase dashboard: **Database → Replication → Enable for tasks, sessions, tutorials**.
+
+### Daily digest cron
+
+`vercel.json` schedules `POST /api/cron/daily-digest` at `0 22 * * *` UTC (= midnight Israel time, UTC+3). The route:
+- Authenticates via `x-cron-secret` header compared to `CRON_SECRET` env var
+- Queries `profiles` for users with `digest_enabled = true` and `notification_hour` matching the current Israel hour
+- Fetches tomorrow's `sessions` and `tasks` for each user, builds an RTL Hebrew email, and sends via Resend
+
+`/api/cron/` routes are excluded from the auth middleware redirect so they can run without a user session.
 
 ### Component structure
 
