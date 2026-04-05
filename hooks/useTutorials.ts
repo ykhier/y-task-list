@@ -1,79 +1,124 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSupabaseUser } from '@/components/providers/SupabaseProvider'
 import type { Tutorial } from '@/types'
 
 type NewTutorial = Omit<Tutorial, 'id' | 'user_id' | 'created_at'>
 
+const FETCH_TIMEOUT_MS = 12000
+
 export function useTutorials() {
   const [tutorials, setTutorials] = useState<Tutorial[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState<string | null>(null)
-
-  const supabase = createClient()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [supabase] = useState(() => createClient())
   const user = useSupabaseUser()
+  const requestIdRef = useRef(0)
 
   const fetchTutorials = useCallback(async () => {
-    if (!user) return
-    const { data, error } = await supabase
-      .from('tutorials')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('start_time', { ascending: true })
-    if (error) { setError(error.message); setLoading(false); return }
+    if (!user) {
+      setTutorials([])
+      setLoading(false)
+      return
+    }
 
-    setTutorials(data ?? [])
-    setLoading(false)
-  }, [user])
+    const requestId = ++requestIdRef.current
+    setLoading(true)
+    setError(null)
 
-  // Initial fetch + realtime subscription
+    const timeout = new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error('טעינת הקבועות ארכה יותר מדי זמן.')), FETCH_TIMEOUT_MS)
+    })
+
+    try {
+      const query = supabase
+        .from('tutorials')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_time', { ascending: true })
+
+      const { data, error } = await Promise.race([query, timeout])
+      if (requestId !== requestIdRef.current) return
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      setTutorials(data ?? [])
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return
+      setError(err instanceof Error ? err.message : 'שגיאה בטעינת הקבועות')
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [supabase, user])
+
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setTutorials([])
+      setLoading(false)
+      return
+    }
 
-    let cancelled = false
-    fetchTutorials().then(() => { if (cancelled) setTutorials([]) })
+    void fetchTutorials()
 
-    // Realtime — update local state from payload instead of re-fetching
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchTutorials()
+      }
+    }
+
+    window.addEventListener('focus', refreshIfVisible)
+    window.addEventListener('pageshow', refreshIfVisible)
+    document.addEventListener('visibilitychange', refreshIfVisible)
+
     const channel = supabase
       .channel(`tutorials-${user.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'tutorials',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const incoming = payload.new as Tutorial
-          setTutorials((prev) =>
-            prev.some((t) => t.id === incoming.id) ? prev : [...prev, incoming]
-          )
-        } else if (payload.eventType === 'UPDATE') {
-          setTutorials((prev) =>
-            prev.map((t) => (t.id === payload.new.id ? (payload.new as Tutorial) : t))
-          )
-        } else if (payload.eventType === 'DELETE') {
-          setTutorials((prev) => prev.filter((t) => t.id !== payload.old.id))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tutorials',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const incoming = payload.new as Tutorial
+            setTutorials((prev) => (prev.some((t) => t.id === incoming.id) ? prev : [...prev, incoming]))
+          } else if (payload.eventType === 'UPDATE') {
+            setTutorials((prev) =>
+              prev.map((t) => (t.id === payload.new.id ? (payload.new as Tutorial) : t))
+            )
+          } else if (payload.eventType === 'DELETE') {
+            setTutorials((prev) => prev.filter((t) => t.id !== payload.old.id))
+          }
         }
-      })
+      )
       .subscribe()
 
     return () => {
-      cancelled = true
+      requestIdRef.current += 1
+      window.removeEventListener('focus', refreshIfVisible)
+      window.removeEventListener('pageshow', refreshIfVisible)
+      document.removeEventListener('visibilitychange', refreshIfVisible)
       supabase.removeChannel(channel)
     }
-  }, [user, fetchTutorials])
+  }, [supabase, user, fetchTutorials])
 
-  // Optimistic add — updates state immediately, rolls back on error
   const addTutorial = useCallback(async (data: NewTutorial): Promise<Tutorial | null> => {
     if (!user) return null
 
     const optimisticId = crypto.randomUUID()
     const optimistic: Tutorial = {
       ...data,
-      id:         optimisticId,
-      user_id:    user.id,
+      id: optimisticId,
+      user_id: user.id,
       created_at: new Date().toISOString(),
     }
     setTutorials((prev) => [...prev, optimistic])
@@ -90,20 +135,18 @@ export function useTutorials() {
       return null
     }
 
-    // Replace optimistic row with real row from DB
     setTutorials((prev) => prev.map((t) => (t.id === optimisticId ? saved : t)))
     return saved
-  }, [user])
+  }, [supabase, user])
 
-  // Optimistic update — applies change immediately, rolls back on error
   const updateTutorial = useCallback(async (id: string, data: Partial<Tutorial>) => {
     setTutorials((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)))
     const { error } = await supabase.from('tutorials').update(data).eq('id', id)
     if (error) {
       setError(error.message)
-      // Realtime DELETE event will sync the correct state
+      void fetchTutorials()
     }
-  }, [])
+  }, [fetchTutorials, supabase])
 
   const addTutorialsBatch = useCallback(async (items: NewTutorial[]): Promise<Tutorial[]> => {
     if (!user || items.length === 0) return []
@@ -111,26 +154,28 @@ export function useTutorials() {
       .from('tutorials')
       .insert(items.map((item) => ({ ...item, user_id: user.id })))
       .select()
-    if (error) { setError(error.message); return [] }
+    if (error) {
+      setError(error.message)
+      return []
+    }
     const saved = data ?? []
     setTutorials((prev) => [...prev, ...saved])
     return saved
-  }, [user])
+  }, [supabase, user])
 
-  // Optimistic delete — removes immediately, rolls back on error
   const deleteTutorial = useCallback(async (id: string) => {
     setTutorials((prev) => prev.filter((t) => t.id !== id))
     const { error } = await supabase.from('tutorials').delete().eq('id', id)
     if (error) {
       setError(error.message)
-      // Could re-fetch here to restore, but Realtime will not fire on failed delete
+      void fetchTutorials()
     }
-  }, [])
+  }, [fetchTutorials, supabase])
 
   const deleteTutorialBySessionId = useCallback(async (sessionId: string) => {
     setTutorials((prev) => prev.filter((t) => t.session_id !== sessionId))
     await supabase.from('tutorials').delete().eq('session_id', sessionId)
-  }, [])
+  }, [supabase])
 
-  return { tutorials, loading, error, addTutorial, addTutorialsBatch, updateTutorial, deleteTutorial, deleteTutorialBySessionId }
+  return { tutorials, loading, error, addTutorial, addTasksBatch: addTutorialsBatch, addTutorialsBatch, updateTutorial, deleteTutorial, deleteTutorialBySessionId, refetchTutorials: fetchTutorials }
 }

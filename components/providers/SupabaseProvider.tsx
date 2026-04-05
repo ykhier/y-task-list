@@ -17,8 +17,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [supabase] = useState(() => createClient());
   const otpSendingRef = useRef(false);
-  const supabase = createClient();
+  const initialResolvedRef = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,80 +32,107 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     return data?.is_admin ?? false;
   };
 
+  const resolveSession = async (options?: { keepVisibleContent?: boolean }) => {
+    if (!options?.keepVisibleContent) {
+      setLoading(true);
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const nextUser = session?.user ?? null;
+    setUser(nextUser);
+
+    if (nextUser) {
+      const admin = await fetchIsAdmin(nextUser.id);
+      setIsAdmin(admin);
+    } else {
+      setIsAdmin(false);
+    }
+
+    initialResolvedRef.current = true;
+    setLoading(false);
+  };
+
   useEffect(() => {
-    let initialResolved = false;
+    void resolveSession();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!initialResolved) return;
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        const admin = await fetchIsAdmin(u.id);
+      if (!initialResolvedRef.current) return;
+
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+
+      if (nextUser) {
+        const admin = await fetchIsAdmin(nextUser.id);
         setIsAdmin(admin);
       } else {
         setIsAdmin(false);
       }
-    });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      initialResolved = true;
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        const admin = await fetchIsAdmin(u.id);
-        setIsAdmin(admin);
-      }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const refreshSessionOnResume = () => {
+      if (document.visibilityState === "visible") {
+        void resolveSession({ keepVisibleContent: true });
+      }
+    };
+
+    window.addEventListener("focus", refreshSessionOnResume);
+    window.addEventListener("pageshow", refreshSessionOnResume);
+    document.addEventListener("visibilitychange", refreshSessionOnResume);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("focus", refreshSessionOnResume);
+      window.removeEventListener("pageshow", refreshSessionOnResume);
+      document.removeEventListener("visibilitychange", refreshSessionOnResume);
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (loading) return;
 
-    // Not logged in → send to login
     if (!user && !AUTH_PATHS.includes(pathname)) {
       router.push("/login");
       return;
     }
 
-    // Safety net: admin without OTP → sign out and send to login
     if (user && user.email === ADMIN_EMAIL && !AUTH_PATHS.includes(pathname)) {
       const otpVerified =
         typeof window !== "undefined" &&
         localStorage.getItem("otp_verified") === user.id;
+
       if (!otpVerified && !otpSendingRef.current) {
         otpSendingRef.current = true;
-        supabase.auth.signOut().then(() => {
+        void supabase.auth.signOut().then(() => {
           window.location.href = "/login";
         });
         return;
       }
     }
 
-    // Non-admin trying to access /admin → send home
     if (user && !isAdmin && pathname.startsWith("/admin")) {
       router.push("/");
     }
-  }, [loading, user, isAdmin, pathname, router]);
+  }, [loading, user, isAdmin, pathname, router, supabase]);
 
   const signOut = async () => {
     otpSendingRef.current = true;
-    if (typeof window !== "undefined") localStorage.removeItem("otp_verified");
-    supabase.auth.signOut(); // fire and forget — don't await
-    window.location.href = "/login"; // redirect immediately
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("otp_verified");
+    }
+    void supabase.auth.signOut();
+    window.location.href = "/login";
   };
 
-  if (loading) {
+  if (loading && !initialResolvedRef.current) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Spinner className="h-8 w-8 text-primary" />
-          <p className="text-sm text-muted-foreground">מתחבר...</p>
+          <p className="text-sm text-muted-foreground">{"\u05de\u05ea\u05d7\u05d1\u05e8..."}</p>
         </div>
       </div>
     );

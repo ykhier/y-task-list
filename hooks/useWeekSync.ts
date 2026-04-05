@@ -185,6 +185,11 @@ export function useWeekSync() {
     events,
     tutorials,
     loading: tasksLoading || eventsLoading || tutorialsLoading,
+    loadingState: {
+      tasks: tasksLoading,
+      events: eventsLoading,
+      tutorials: tutorialsLoading,
+    },
     error:   tasksError ?? eventsError ?? tutorialsError,
 
     // Task actions

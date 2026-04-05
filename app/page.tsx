@@ -16,6 +16,7 @@ export default function AppPage() {
     events,
     tutorials,
     loading,
+    loadingState,
     activeTab,
     setActiveTab,
     taskActions,
@@ -52,7 +53,7 @@ export default function AppPage() {
             <TaskList
               tasks={tasks}
               events={events}
-              isLoading={loading}
+              isLoading={loadingState.tasks}
               onAdd={taskActions.addTask}
               onToggle={taskActions.toggleTask}
               onDelete={taskActions.deleteTask}

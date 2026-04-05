@@ -2,19 +2,12 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Resend } from 'resend'
 
-// Israel time = UTC+3 (simplified; doesn't handle DST)
-const ISRAEL_OFFSET = 3
-
+// Cron runs at 19:00 UTC = 22:00 Israel (UTC+3)
 function getTomorrowIsrael(): string {
   const now = new Date()
-  const israelNow = new Date(now.getTime() + ISRAEL_OFFSET * 60 * 60 * 1000)
+  const israelNow = new Date(now.getTime() + 3 * 60 * 60 * 1000)
   israelNow.setUTCDate(israelNow.getUTCDate() + 1)
   return israelNow.toISOString().slice(0, 10) // YYYY-MM-DD
-}
-
-function getIsraelHour(): number {
-  const now = new Date()
-  return (now.getUTCHours() + ISRAEL_OFFSET) % 24
 }
 
 function formatTime(t: string) {
@@ -153,16 +146,14 @@ export async function POST(request: Request) {
   }
 
   const adminClient = createAdminClient()
-  const israelHour = getIsraelHour()
   const tomorrow = getTomorrowIsrael()
   const tomorrowLabel = formatTomorrowLabel(tomorrow)
 
-  // Fetch all users who want a digest at this hour
+  // Fetch all users who have digest enabled
   const { data: profiles } = await adminClient
     .from('profiles')
-    .select('id, full_name, email, notification_hour')
+    .select('id, full_name, email')
     .eq('digest_enabled', true)
-    .eq('notification_hour', israelHour)
 
   if (!profiles?.length) {
     return NextResponse.json({ ok: true, sent: 0 })

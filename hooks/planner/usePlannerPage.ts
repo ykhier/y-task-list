@@ -20,6 +20,7 @@ export function usePlannerPage() {
     events,
     tutorials,
     loading,
+    loadingState,
     addTask,
     addTasksBatch,
     toggleTask,
@@ -312,6 +313,7 @@ export function usePlannerPage() {
     events,
     tutorials,
     loading,
+    loadingState,
     activeTab,
     setActiveTab,
     taskActions: {

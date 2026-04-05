@@ -45,6 +45,7 @@ export default function TaskList({
     () => getFilteredTasks(tasks, filter, selectedDate, today),
     [tasks, filter, selectedDate, today],
   );
+  const showBlockingSpinner = Boolean(isLoading && tasks.length === 0);
 
   const resetAddDialog = () => {
     setDialogOpen(false);
@@ -95,7 +96,7 @@ export default function TaskList({
       )}
 
       <div className="flex-1 overflow-y-auto py-2">
-        {isLoading ? (
+        {showBlockingSpinner ? (
           <div className="flex items-center justify-center py-12">
             <Spinner variant="ring" className="h-5 w-5 border-blue-500" />
           </div>

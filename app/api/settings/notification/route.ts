@@ -23,13 +23,12 @@ export async function GET() {
 
   const { data } = await supabase
     .from('profiles')
-    .select('digest_enabled, notification_hour')
+    .select('digest_enabled')
     .eq('id', user.id)
     .single()
 
   return NextResponse.json({
     digest_enabled: data?.digest_enabled ?? false,
-    notification_hour: data?.notification_hour ?? 21,
   })
 }
 
@@ -39,20 +38,15 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { digest_enabled, notification_hour } = body
+  const { digest_enabled } = body
 
-  if (
-    typeof digest_enabled !== 'boolean' ||
-    typeof notification_hour !== 'number' ||
-    notification_hour < 0 ||
-    notification_hour > 23
-  ) {
+  if (typeof digest_enabled !== 'boolean') {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
   const { error } = await supabase
     .from('profiles')
-    .update({ digest_enabled, notification_hour })
+    .update({ digest_enabled })
     .eq('id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
