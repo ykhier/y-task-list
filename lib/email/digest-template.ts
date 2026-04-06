@@ -27,7 +27,7 @@ function timelineRows(items: DigestItem[]): string {
       return `
       <tr>
         <td style="padding:12px 8px 12px 0; ${borderBottom} color:#64748b; font-size:13px; white-space:nowrap; width:105px; vertical-align:middle; text-align:right;">
-          ${fmt(item.time)}&nbsp;–&nbsp;${fmt(item.end_time)}
+          ${fmt(item.time)}&nbsp;&ndash;&nbsp;${fmt(item.end_time)}
         </td>
         <td style="padding:12px 8px; ${borderBottom} color:#1e293b; font-size:14px; font-weight:500; vertical-align:middle; text-align:right;">
           ${item.title}
@@ -50,7 +50,7 @@ function untimedSection(tasks: string[]): string {
       (title) => `
       <tr>
         <td style="padding:5px 0; color:#1e293b; font-size:14px; text-align:right;">
-          <span style="color:#22c55e; font-size:16px; margin-left:6px;">•</span>${title}
+          <span style="color:#22c55e; font-size:16px; margin-left:6px;">&bull;</span>${title}
         </td>
       </tr>`,
     )
@@ -95,7 +95,7 @@ export function buildDigestHtml({
 }: DigestPayload): string {
   const totalItems = timedItems.length + untimedTasks.length
   const greeting = totalItems > 0
-    ? `מחר יש לך ${totalItems} פריטים — הנה הסיכום:`
+    ? `מחר יש לך ${totalItems} פריטים &mdash; הנה הסיכום:`
     : 'מחר אין פריטים מתוכננים.'
 
   return `<!DOCTYPE html>
@@ -113,9 +113,11 @@ export function buildDigestHtml({
         <!-- HEADER -->
         <tr>
           <td align="center" style="background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); border-radius:20px; padding:28px 28px 24px;">
-            <p style="margin:0 0 12px; font-size:26px; line-height:1; text-align:center;">&#128197;</p>
+            <p style="margin:0 0 12px; font-size:26px; line-height:1; text-align:center;">
+              [WeekFlow]
+            </p>
             <h1 style="margin:0 0 4px; color:#fff; font-size:22px; font-weight:700; letter-spacing:-0.3px; text-align:center;">
-              &#1500;&#1493;&#1494; &#1500;&#1502;&#1495;&#1512;
+              לוז למחר
             </h1>
             <p style="margin:0; color:rgba(255,255,255,0.85); font-size:15px; font-weight:600; text-align:center;">
               ${tomorrowLabel}
@@ -133,7 +135,7 @@ export function buildDigestHtml({
               <!-- Greeting -->
               <tr>
                 <td style="padding-bottom:20px; color:#475569; font-size:14px; line-height:1.7; text-align:right;">
-                  &#1513;&#1500;&#1493;&#1501; ${fullName || ''} &#128075;<br/>${greeting}
+                  שלום ${fullName || ''}<br/>${greeting}
                 </td>
               </tr>
 
@@ -171,12 +173,12 @@ export function buildDigestHtml({
                   <span style="color:#fff; font-size:11px; font-weight:700; line-height:20px;">W</span>
                 </td>
                 <td style="padding-right:6px; font-size:12px; color:#94a3b8; vertical-align:middle;">
-                  WeekFlow &middot; &#1497;&#1493;&#1502;&#1503; &#1513;&#1489;&#1493;&#1506;&#1497; &#1495;&#1499;&#1501;
+                  WeekFlow &middot; יומן שבועי חכם
                 </td>
               </tr>
             </table>
             <p style="margin:6px 0 0; font-size:11px; color:#cbd5e1; text-align:center;">
-              &#1500;&#1513;&#1497;&#1504;&#1493;&#1497; &#1492;&#1490;&#1491;&#1512;&#1493;&#1514; &#8212; &#1499;&#1504;&#1505; &#1500;&#1492;&#1490;&#1491;&#1512;&#1493;&#1514; &#1489;&#1488;&#1508;&#1500;&#1497;&#1511;&#1510;&#1497;&#1492;
+              לשינוי הגדרות &mdash; כנס להגדרות באפליקציה
             </p>
           </td>
         </tr>

@@ -22,6 +22,5 @@ export async function sendEmail({
     to,
     subject,
     html,
-    encoding: 'utf-8',
   })
 }
