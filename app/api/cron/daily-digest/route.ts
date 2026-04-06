@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   fetchDigestForUser,
@@ -7,6 +6,7 @@ import {
   getTomorrowIsrael,
 } from '@/lib/email/digest-data'
 import { buildDigestHtml } from '@/lib/email/digest-template'
+import { sendEmail } from '@/lib/email/mailer'
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 })
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    return NextResponse.json({ error: 'Gmail credentials not configured' }, { status: 500 })
   }
 
   const adminClient = createAdminClient()
@@ -31,7 +31,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, sent: 0 })
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
   let sent = 0
   const debugLog: object[] = []
 
@@ -48,8 +47,7 @@ export async function GET(request: Request) {
         untimedTasks,
       })
 
-      await resend.emails.send({
-        from: 'WeekFlow <onboarding@resend.dev>',
+      await sendEmail({
         to: profile.email!,
         subject: `לוז למחר - ${tomorrowLabel} 📅`,
         html,
