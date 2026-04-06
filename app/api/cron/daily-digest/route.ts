@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   let sent = 0
   const debugLog: object[] = []
 
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     profiles.map(async (profile) => {
       const { timedItems, untimedTasks } = await fetchDigestForUser(profile.id, tomorrow)
 
@@ -57,5 +57,9 @@ export async function GET(request: Request) {
     }),
   )
 
-  return NextResponse.json({ ok: true, sent, debug: debugLog })
+  const errors = results
+    .filter((r) => r.status === 'rejected')
+    .map((r) => (r as PromiseRejectedResult).reason?.message ?? 'unknown error')
+
+  return NextResponse.json({ ok: true, sent, errors, debug: debugLog })
 }

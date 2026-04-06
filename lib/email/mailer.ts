@@ -18,9 +18,10 @@ export async function sendEmail({
   html: string
 }) {
   await transporter.sendMail({
-    from: `WeekFlow 📅 <${process.env.GMAIL_USER}>`,
+    from: `"WeekFlow" <${process.env.GMAIL_USER}>`,
     to,
     subject,
     html,
+    encoding: 'utf-8',
   })
 }
