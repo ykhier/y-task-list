@@ -38,14 +38,14 @@ export async function GET(request: Request) {
     profiles.map(async (profile) => {
       const { timedItems, untimedTasks } = await fetchDigestForUser(profile.id, tomorrow)
 
-      debugLog.push({ email: profile.email, tomorrow, timedItems, untimedTasks })
-
       const html = buildDigestHtml({
         fullName: profile.full_name ?? '',
         tomorrowLabel,
         timedItems,
         untimedTasks,
       })
+
+      debugLog.push({ email: profile.email, htmlLength: html.length, htmlPreview: html.slice(0, 300) })
 
       await sendEmail({
         to: profile.email!,
