@@ -10,6 +10,19 @@ type NewTask = Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>
 const FETCH_TIMEOUT_MS = 12000
 const inMemoryTasksCache = new Map<string, Task[]>()
 
+function dedupeTasks(tasks: Task[]) {
+  const seen = new Set<string>()
+  const unique: Task[] = []
+
+  for (const task of tasks) {
+    if (seen.has(task.id)) continue
+    seen.add(task.id)
+    unique.push(task)
+  }
+
+  return unique
+}
+
 function getTasksCacheKey(userId: string) {
   return `weekflow.tasks.${userId}`
 }
@@ -31,11 +44,12 @@ function readCachedTasks(userId: string): Task[] | null {
 }
 
 function writeCachedTasks(userId: string, tasks: Task[]) {
-  inMemoryTasksCache.set(userId, tasks)
+  const uniqueTasks = dedupeTasks(tasks)
+  inMemoryTasksCache.set(userId, uniqueTasks)
   if (typeof window === 'undefined') return
 
   try {
-    window.sessionStorage.setItem(getTasksCacheKey(userId), JSON.stringify(tasks))
+    window.sessionStorage.setItem(getTasksCacheKey(userId), JSON.stringify(uniqueTasks))
   } catch {
     // Ignore storage failures and keep the live state working.
   }
@@ -86,7 +100,7 @@ export function useTasks() {
         return
       }
 
-      const nextTasks = data ?? []
+      const nextTasks = dedupeTasks(data ?? [])
       setTasks(nextTasks)
       writeCachedTasks(user.id, nextTasks)
     } catch (err) {
@@ -110,7 +124,7 @@ export function useTasks() {
 
     const cachedTasks = readCachedTasks(user.id)
     if (cachedTasks) {
-      setTasks(cachedTasks)
+      setTasks(dedupeTasks(cachedTasks))
       setLoading(false)
       hasResolvedInitialFetchRef.current = true
     }
@@ -140,13 +154,25 @@ export function useTasks() {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const incoming = payload.new as Task
-            setTasks((prev) => (prev.some((t) => t.id === incoming.id) ? prev : [incoming, ...prev]))
+            setTasks((prev) => {
+              const nextTasks = dedupeTasks([incoming, ...prev])
+              writeCachedTasks(user.id, nextTasks)
+              return nextTasks
+            })
           } else if (payload.eventType === 'UPDATE') {
-            setTasks((prev) =>
-              prev.map((t) => (t.id === payload.new.id ? (payload.new as Task) : t))
-            )
+            setTasks((prev) => {
+              const nextTasks = dedupeTasks(
+                prev.map((t) => (t.id === payload.new.id ? (payload.new as Task) : t))
+              )
+              writeCachedTasks(user.id, nextTasks)
+              return nextTasks
+            })
           } else if (payload.eventType === 'DELETE') {
-            setTasks((prev) => prev.filter((t) => t.id !== payload.old.id))
+            setTasks((prev) => {
+              const nextTasks = prev.filter((t) => t.id !== payload.old.id)
+              writeCachedTasks(user.id, nextTasks)
+              return nextTasks
+            })
           }
         }
       )
@@ -178,7 +204,7 @@ export function useTasks() {
       return null
     }
     setTasks((prev) => {
-      const nextTasks = [task, ...prev]
+      const nextTasks = dedupeTasks([task, ...prev])
       writeCachedTasks(user.id, nextTasks)
       return nextTasks
     })
@@ -227,7 +253,7 @@ export function useTasks() {
     }
     const saved = data ?? []
     setTasks((prev) => {
-      const nextTasks = [...saved, ...prev]
+      const nextTasks = dedupeTasks([...saved, ...prev])
       writeCachedTasks(user.id, nextTasks)
       return nextTasks
     })
