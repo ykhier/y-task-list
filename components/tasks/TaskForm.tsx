@@ -52,11 +52,16 @@ function findConflict(
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
 
-  const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id));
+  const completedTaskIds = new Set(
+    tasks.filter((t) => t.is_completed).map((t) => t.id),
+  );
 
   for (const ev of events) {
     if (ev.date !== date) continue;
-    if (ev.task_id && (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)) {
+    if (
+      ev.task_id &&
+      (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)
+    ) {
       continue;
     }
 
@@ -115,7 +120,9 @@ export default function TaskForm({
   const [dayIndex, setDayIndex] = useState<number>(initDay);
   const [time, setTime] = useState(editTask?.time ?? "");
   const [endTime, setEndTime] = useState(editTask?.end_time ?? "");
-  const [isRecurring, setIsRecurring] = useState(editTask?.is_recurring ?? false);
+  const [isRecurring, setIsRecurring] = useState(
+    editTask?.is_recurring ?? false,
+  );
   const [conflict, setConflict] = useState<string | null>(null);
   const [timeError, setTimeError] = useState<string | null>(null);
 
@@ -162,7 +169,14 @@ export default function TaskForm({
     setTimeError(null);
 
     const date = getDateForWeekday(dayIndex);
-    const currentConflict = findConflict(date, time, endTime, events, tasks, editTask?.id);
+    const currentConflict = findConflict(
+      date,
+      time,
+      endTime,
+      events,
+      tasks,
+      editTask?.id,
+    );
     setConflict(currentConflict);
 
     if (!title.trim() || currentConflict) return;
@@ -208,7 +222,10 @@ export default function TaskForm({
 
       <div className="flex flex-col gap-1.5">
         <Label>יום</Label>
-        <Select value={String(dayIndex)} onValueChange={(v) => setDayIndex(Number(v))}>
+        <Select
+          value={String(dayIndex)}
+          onValueChange={(v) => setDayIndex(Number(v))}
+        >
           <HebrewSelectTrigger>
             <HebrewSelectValue />
           </HebrewSelectTrigger>
@@ -225,7 +242,9 @@ export default function TaskForm({
       <div className="flex flex-col gap-1.5">
         <Label>
           שעות *
-          <span className="ms-1 text-xs text-slate-400 font-normal">(מוסיף ללוח שנה)</span>
+          <span className="ms-1 text-xs text-slate-400 font-normal">
+            (מוסיף ללוח שנה)
+          </span>
         </Label>
         <div className="flex items-center gap-2">
           <Input
@@ -278,7 +297,12 @@ export default function TaskForm({
       )}
 
       <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+        >
           ביטול
         </Button>
         <Button type="submit" disabled={isLoading || !title.trim()}>

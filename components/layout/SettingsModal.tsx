@@ -147,7 +147,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                   המייל יישלח בשעה 22:00 (שעון ישראל)
                 </p>
                 <p className="text-sm text-slate-700 font-medium">
-                  הלו״ז שלך למחר — יום {getTomorrowDayName()} 📅
+                  הלו״ז שלך למחר - יום {getTomorrowDayName()} 📅
                 </p>
               </div>
             )}
