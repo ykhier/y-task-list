@@ -135,9 +135,9 @@ function formatTomorrowLabel(dateStr: string): string {
   return `יום ${days[d.getUTCDay()]}, ${d.getUTCDate()} ב${months[d.getUTCMonth()]}`
 }
 
-export async function POST(request: Request) {
-  const secret = request.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization')
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

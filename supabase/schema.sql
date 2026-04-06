@@ -6,7 +6,7 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
--- ── PROFILES (one row per auth user) ─────────────────────────
+-- PROFILES (one row per auth user)
 create table if not exists public.profiles (
   id         uuid primary key references auth.users(id) on delete cascade,
   full_name  text,
@@ -88,7 +88,7 @@ create table if not exists public.tutorials (
   created_at   timestamptz not null default now()
 );
 
--- ── INDEXES ──────────────────────────────────────────────────
+-- ── INDEXES
 create index if not exists tasks_user_date           on public.tasks(user_id, date);
 create index if not exists tasks_user_recurring      on public.tasks(user_id, is_recurring) where is_recurring = true;
 create index if not exists sessions_user_date        on public.sessions(user_id, date);
@@ -98,7 +98,7 @@ create index if not exists tutorials_user_date       on public.tutorials(user_id
 create index if not exists tutorials_user_recurring  on public.tutorials(user_id, is_recurring) where is_recurring = true;
 create index if not exists tutorials_session         on public.tutorials(session_id);
 
--- ── ROW LEVEL SECURITY ───────────────────────────────────────
+-- ── ROW LEVEL SECURITY
 alter table public.tasks      enable row level security;
 alter table public.sessions   enable row level security;
 alter table public.tutorials  enable row level security;
@@ -117,15 +117,3 @@ create policy "tutorials: own rows"
   on public.tutorials for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
-
--- ── MIGRATION: add is_recurring (run if upgrading) ──────────
--- ALTER TABLE public.sessions  ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
--- ALTER TABLE public.tutorials ADD COLUMN IF NOT EXISTS is_recurring boolean NOT NULL DEFAULT false;
-
--- ── MIGRATION: daily digest settings (run if upgrading) ──────
--- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS digest_enabled boolean NOT NULL DEFAULT false;
--- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notification_hour integer CHECK (notification_hour BETWEEN 0 AND 23);
-
--- ── REALTIME ─────────────────────────────────────────────────
--- Enable realtime in Supabase dashboard:
--- Database → Replication → Enable for tasks, sessions, tutorials
