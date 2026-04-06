@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Shield, ShieldOff, Trash2, Users } from 'lucide-react'
+import { ArrowRight, Trash2, Users } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 import { Badge } from '@/components/ui/badge'
 
@@ -27,41 +27,6 @@ export default function AdminUsersClient({
   const [error, setError] = useState<string | null>(initialError)
   const [busyId, setBusyId] = useState<string | null>(null)
   const router = useRouter()
-
-  const toggleAdmin = async (id: string, current: boolean) => {
-    setBusyId(id)
-    setError(null)
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id ? { ...user, is_admin: !current } : user
-      )
-    )
-
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_admin: !current }),
-      })
-
-      if (!res.ok) {
-        throw new Error('לא הצלחנו לעדכן את ההרשאה')
-      }
-    } catch (nextError) {
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === id ? { ...user, is_admin: current } : user
-        )
-      )
-      setError(
-        nextError instanceof Error
-          ? nextError.message
-          : 'לא הצלחנו לעדכן את ההרשאה'
-      )
-    } finally {
-      setBusyId(null)
-    }
-  }
 
   const deleteUser = async (id: string, name: string) => {
     const label = name || 'המשתמש'
@@ -181,23 +146,6 @@ export default function AdminUsersClient({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => toggleAdmin(user.id, user.is_admin)}
-                            disabled={isBusy}
-                            title={
-                              user.is_admin
-                                ? 'הסר הרשאת מנהל'
-                                : 'הגדר כמנהל'
-                            }
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {user.is_admin ? (
-                              <ShieldOff className="h-4 w-4" />
-                            ) : (
-                              <Shield className="h-4 w-4" />
-                            )}
-                          </button>
-
                           <button
                             onClick={() => deleteUser(user.id, user.full_name || '')}
                             disabled={isBusy}
