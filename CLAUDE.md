@@ -23,7 +23,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # required for admin OTP routes (/api/send-otp, /api/verify-otp)
 OPENAI_API_KEY=...              # required for voice input (/api/voice-parse)
 RESEND_API_KEY=...              # optional — OTP emails fall back to console.log without it
-CRON_SECRET=...                 # required for /api/cron/daily-digest (verified via x-cron-secret header)
+CRON_SECRET=...                 # required for /api/cron/daily-digest (verified via Authorization: Bearer header)
+GMAIL_USER=...                  # required for daily digest emails (Gmail SMTP via Nodemailer)
+GMAIL_APP_PASSWORD=...          # Gmail App Password (not account password) for SMTP auth
 LANGCHAIN_TRACING_V2=true       # optional — enables LangSmith tracing for voice API calls
 LANGCHAIN_API_KEY=...           # required if tracing enabled
 LANGCHAIN_PROJECT=...           # LangSmith project name
@@ -89,7 +91,7 @@ Realtime must be enabled in the Supabase dashboard: **Database → Replication �
 `vercel.json` schedules `GET /api/cron/daily-digest` at `0 19 * * *` UTC (= 22:00 Israel time, UTC+3). The route:
 - Authenticates via `Authorization: Bearer <CRON_SECRET>` header (Vercel crons send this automatically)
 - Queries `profiles` for users with `digest_enabled = true`
-- Fetches tomorrow's `sessions` and `tasks` for each user, builds an RTL Hebrew email, and sends via Resend
+- Fetches tomorrow's `sessions` and `tasks` for each user, builds an RTL Hebrew email, and sends via Gmail SMTP (Nodemailer, `lib/email/mailer.ts`). RTL layout requires inline `direction:rtl; text-align:right` on `<body>` and all inner cells — Gmail ignores the HTML `dir` attribute alone
 
 `/api/cron/` routes are excluded from the auth middleware redirect so they can run without a user session.
 

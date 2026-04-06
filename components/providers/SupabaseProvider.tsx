@@ -37,7 +37,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const nextUser = session?.user ?? null;
     setUser(nextUser);
 
@@ -123,7 +125,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("otp_verified");
     }
-    void supabase.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = "/login";
   };
 
@@ -132,7 +134,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Spinner className="h-8 w-8 text-primary" />
-          <p className="text-sm text-muted-foreground">{"\u05de\u05ea\u05d7\u05d1\u05e8..."}</p>
+          <p className="text-sm text-muted-foreground">
+            {"\u05de\u05ea\u05d7\u05d1\u05e8..."}
+          </p>
         </div>
       </div>
     );

@@ -30,16 +30,13 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
+  // Fetch eagerly on mount so data is ready before the user opens the modal
   useEffect(() => {
-    if (!open) return;
-    setLoading(true);
     fetch("/api/settings/notification")
       .then((r) => r.json())
-      .then((d) => {
-        setEnabled(d.digest_enabled ?? false);
-      })
+      .then((d) => setEnabled(d.digest_enabled ?? false))
       .finally(() => setLoading(false));
-  }, [open]);
+  }, []);
 
   async function handleSave() {
     setSaveState("saving");
