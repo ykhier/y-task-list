@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 async function verifyAdmin() {
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient({
+    getAll: () => cookieStore.getAll(),
+    setAll: (cookiesToSet) => {
+      cookiesToSet.forEach(({ name, value, options }) => {
+        cookieStore.set(name, value, options)
+      })
+    },
+  })
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 

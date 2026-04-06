@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import OpenAI from 'openai'
 import { wrapOpenAI } from 'langsmith/wrappers'
 import { traceable } from 'langsmith/traceable'
@@ -8,7 +9,15 @@ const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמיש
 
 export async function POST(req: NextRequest) {
   const openai = wrapOpenAI(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
-  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient({
+    getAll: () => cookieStore.getAll(),
+    setAll: (cookiesToSet) => {
+      cookiesToSet.forEach(({ name, value, options }) => {
+        cookieStore.set(name, value, options)
+      })
+    },
+  })
   const { data: { user } } = await supabase.auth.getUser()
   const userEmail = user?.email ?? 'unknown'
 

@@ -1,10 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import type { Database } from '@/types/database.types'
 
-export async function createClient() {
-  const cookieStore = await cookies()
+type SupabaseCookie = {
+  name: string
+  value: string
+  options?: Record<string, unknown>
+}
 
+type SupabaseCookieStore = {
+  getAll: () => { name: string; value: string }[]
+  setAll?: (cookiesToSet: SupabaseCookie[]) => void
+}
+
+export function createClient(cookieStore: SupabaseCookieStore) {
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,11 +23,9 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            cookieStore.setAll?.(cookiesToSet)
           } catch {
-            // Server component — ignore
+            // Server component: ignore write attempts during render.
           }
         },
       },

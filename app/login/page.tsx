@@ -34,10 +34,11 @@ export default function LoginPage() {
         msg.includes("email not confirmed") ||
         msg.includes("email_not_confirmed") ||
         code === "email_not_confirmed";
+
       setError(
         isUnconfirmed
-          ? "יש לאמת את האימייל לפני ההתחברות - בדוק את תיבת הדואר שלך"
-          : "אימייל או סיסמא שגויים",
+          ? "יש לאמת את האימייל לפני ההתחברות. בדוק את תיבת הדואר שלך."
+          : "אימייל או סיסמה שגויים"
       );
       setLoading(false);
       return;
@@ -51,6 +52,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+
       if (!res.ok) {
         const data = await res.json();
         setError(data.error ?? "שגיאה בשליחת קוד אימות");
@@ -58,6 +60,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+
       sessionStorage.setItem("otp_token", accessToken);
       sessionStorage.setItem("otp_user_id", signInData.user!.id);
       router.push("/verify-otp");
@@ -69,35 +72,29 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
-      {/* Decorative blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100 opacity-60 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-60 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Card */}
-        <div className="rounded-2xl bg-white shadow-xl border border-slate-100 p-8">
-          {/* Logo */}
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-2xl bg-blue-500 flex items-center justify-center shadow-md shadow-blue-200">
+        <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-xl">
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 shadow-md shadow-blue-200">
               <CalendarDays className="h-6 w-6 text-white" />
             </div>
+
             <div className="text-center">
               <h1 className="text-xl font-bold text-slate-800">WeekFlow</h1>
-              <p className="text-sm text-slate-500 mt-1">
-                התחבר לחשבונך כדי להמשיך
+              <p className="mt-1 text-sm text-slate-500">
+                ניהול לו״ז חכם לסטודנטים ולשגרה עמוסה
               </p>
             </div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-slate-700"
-              >
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
                 אימייל
               </Label>
               <Input
@@ -113,11 +110,8 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="password"
-                className="text-sm font-medium text-slate-700"
-              >
-                סיסמא
+              <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                סיסמה
               </Label>
               <PasswordInput
                 id="password"
@@ -129,14 +123,14 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </p>
             )}
 
             <Button
               type="submit"
-              className="w-full h-10 mt-1 text-sm font-semibold"
+              className="mt-1 h-10 w-full text-sm font-semibold"
               disabled={loading}
             >
               {loading ? (
@@ -150,19 +144,18 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Signup link */}
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="mt-6 text-center text-sm text-slate-500">
             אין לך חשבון?{" "}
             <Link
               href="/signup"
-              className="text-blue-500 hover:text-blue-600 font-semibold"
+              className="font-semibold text-blue-500 hover:text-blue-600"
             >
               הירשם בחינם
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-4">
+        <p className="mt-4 text-center text-xs text-slate-400">
           WeekFlow © 2026 · כל הזכויות שמורות
         </p>
       </div>

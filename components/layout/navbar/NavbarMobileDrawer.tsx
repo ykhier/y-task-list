@@ -1,7 +1,7 @@
 import { CalendarDays, ChevronLeft, LogOut, Settings, Shield, X } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { TabView } from '@/types'
+import Spinner from '@/components/ui/Spinner'
 import { NAVBAR_TABS } from './navbar-tabs'
 
 interface NavbarMobileDrawerProps {
@@ -13,6 +13,8 @@ interface NavbarMobileDrawerProps {
   onSettingsOpen: () => void
   isAdmin?: boolean
   fullName?: string
+  adminNavigationPending?: boolean
+  onAdminClick?: () => void
 }
 
 export default function NavbarMobileDrawer({
@@ -24,17 +26,18 @@ export default function NavbarMobileDrawer({
   onSettingsOpen,
   isAdmin,
   fullName,
+  adminNavigationPending,
+  onAdminClick,
 }: NavbarMobileDrawerProps) {
-  const router = useRouter()
   return (
     <>
       <div
         aria-hidden="true"
         className={cn(
-          'fixed inset-0 z-40 sm:hidden transition-all duration-300',
+          'fixed inset-0 z-40 transition-all duration-300 sm:hidden',
           menuOpen
-            ? 'bg-black/50 backdrop-blur-sm pointer-events-auto'
-            : 'bg-transparent pointer-events-none opacity-0',
+            ? 'pointer-events-auto bg-black/50 backdrop-blur-sm'
+            : 'pointer-events-none bg-transparent opacity-0'
         )}
         onClick={onClose}
       />
@@ -44,122 +47,149 @@ export default function NavbarMobileDrawer({
         aria-modal="true"
         aria-label="תפריט ניווט"
         className={cn(
-          'fixed top-0 right-0 bottom-0 z-50 w-[300px] flex flex-col sm:hidden',
-          'bg-white shadow-2xl',
-          'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
-          menuOpen ? 'translate-x-0' : 'translate-x-full',
+          'fixed right-0 top-0 bottom-0 z-50 flex w-[300px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] sm:hidden',
+          menuOpen ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         <div className="relative flex items-center gap-3.5 px-5 pt-6 pb-5">
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none" />
-          <div className="relative flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-blue-50/60 to-transparent" />
+          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200">
             <CalendarDays className="h-6 w-6 text-white" />
           </div>
-          <div className="relative flex-1 min-w-0">
-            <p className="text-lg font-bold text-slate-800 leading-tight tracking-tight">WeekFlow</p>
+          <div className="relative min-w-0 flex-1">
+            <p className="text-lg font-bold leading-tight tracking-tight text-slate-800">
+              WeekFlow
+            </p>
             {fullName ? (
-              <p className="text-xs text-blue-500 font-medium mt-0.5 truncate">{fullName}</p>
+              <p className="mt-0.5 truncate text-xs font-medium text-blue-500">
+                {fullName}
+              </p>
             ) : (
-              <p className="text-xs text-slate-400 font-medium mt-0.5">מתכנן שבועי חכם</p>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
+                מתכנן שבועי חכם
+              </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="relative flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-150 cursor-pointer"
+            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-600"
             aria-label="סגור תפריט"
           >
-            <X className="h-4.5 w-4.5" style={{ width: 18, height: 18 }} />
+            <X className="h-[18px] w-[18px]" />
           </button>
         </div>
 
         <div className="mx-5 h-px bg-slate-100" />
 
-        <div className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] px-3 mb-3">
+        <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
+          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             תפריט ראשי
           </p>
 
-          {NAVBAR_TABS.map(({ label, sublabel, value, Icon, activeGradient, activeShadow, iconBg, iconColor }) => {
-            const isActive = activeTab === value
+          {NAVBAR_TABS.map(
+            ({ label, sublabel, value, Icon, activeGradient, activeShadow, iconBg, iconColor }) => {
+              const isActive = activeTab === value
 
-            return (
-              <button
-                key={value}
-                onClick={() => onTabChange(value)}
-                className={cn(
-                  'group relative flex items-center gap-3.5 w-full px-3.5 py-3.5 rounded-2xl cursor-pointer transition-all duration-200 text-right overflow-hidden',
-                  isActive
-                    ? `bg-gradient-to-l ${activeGradient} shadow-md ${activeShadow}`
-                    : 'hover:bg-slate-50 active:bg-slate-100',
-                )}
-              >
-                <div
+              return (
+                <button
+                  key={value}
+                  onClick={() => onTabChange(value)}
                   className={cn(
-                    'relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
-                    isActive ? 'bg-white/20' : iconBg,
+                    'group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl px-3.5 py-3.5 text-right transition-all duration-200',
+                    isActive
+                      ? `bg-gradient-to-l ${activeGradient} shadow-md ${activeShadow}`
+                      : 'hover:bg-slate-50 active:bg-slate-100'
                   )}
                 >
-                  <Icon
-                    className={cn('transition-colors duration-200', isActive ? 'text-white' : iconColor)}
-                    style={{ width: 18, height: 18 }}
-                  />
-                </div>
-
-                <div className="flex-1 flex flex-col items-start min-w-0">
-                  <span className={cn('text-sm font-bold leading-tight', isActive ? 'text-white' : 'text-slate-800')}>
-                    {label}
-                  </span>
-                  <span
+                  <div
                     className={cn(
-                      'text-[11px] font-medium mt-0.5 leading-tight',
-                      isActive ? 'text-white/70' : 'text-slate-400',
+                      'relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200',
+                      isActive ? 'bg-white/20' : iconBg
                     )}
                   >
-                    {sublabel}
-                  </span>
-                </div>
+                    <Icon
+                      className={cn(
+                        'transition-colors duration-200',
+                        isActive ? 'text-white' : iconColor
+                      )}
+                      style={{ width: 18, height: 18 }}
+                    />
+                  </div>
 
-                <ChevronLeft
-                  className={cn(
-                    'flex-shrink-0 transition-all duration-200',
-                    isActive ? 'text-white/60' : 'text-slate-300 group-hover:text-slate-400',
-                  )}
-                  style={{ width: 16, height: 16 }}
-                />
-              </button>
-            )
-          })}
+                  <div className="flex min-w-0 flex-1 flex-col items-start">
+                    <span
+                      className={cn(
+                        'text-sm font-bold leading-tight',
+                        isActive ? 'text-white' : 'text-slate-800'
+                      )}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className={cn(
+                        'mt-0.5 text-[11px] font-medium leading-tight',
+                        isActive ? 'text-white/70' : 'text-slate-400'
+                      )}
+                    >
+                      {sublabel}
+                    </span>
+                  </div>
+
+                  <ChevronLeft
+                    className={cn(
+                      'flex-shrink-0 transition-all duration-200',
+                      isActive ? 'text-white/60' : 'text-slate-300 group-hover:text-slate-400'
+                    )}
+                    style={{ width: 16, height: 16 }}
+                  />
+                </button>
+              )
+            }
+          )}
         </div>
 
-        <div className="px-5 py-4 border-t border-slate-100 flex flex-col gap-3">
+        <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4">
           {isAdmin && (
             <button
-              onClick={() => { onClose(); router.push('/admin') }}
-              className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150 cursor-pointer text-sm font-medium"
+              onClick={() => {
+                onClose()
+                onAdminClick?.()
+              }}
+              disabled={adminNavigationPending}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-500 transition-colors duration-150 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-wait disabled:opacity-80"
             >
-              <Shield style={{ width: 16, height: 16 }} />
+              {adminNavigationPending ? (
+                <Spinner className="h-4 w-4 text-blue-500" />
+              ) : (
+                <Shield style={{ width: 16, height: 16 }} />
+              )}
               ניהול משתמשים
             </button>
           )}
+
           <button
             onClick={onSettingsOpen}
-            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-150 cursor-pointer text-sm font-medium"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-500 transition-colors duration-150 hover:bg-blue-50 hover:text-blue-600"
           >
             <Settings style={{ width: 16, height: 16 }} />
             הגדרות
           </button>
+
           <button
             onClick={onSignOut}
-            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer text-sm font-medium"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-500 transition-colors duration-150 hover:bg-red-50 hover:text-red-600"
           >
             <LogOut style={{ width: 16, height: 16 }} />
             התנתק
           </button>
+
           <div className="flex items-center justify-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-blue-600">
               <CalendarDays className="text-white" style={{ width: 11, height: 11 }} />
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">WeekFlow · כל הזכויות שמורות</p>
+            <p className="text-[11px] font-medium text-slate-400">
+              WeekFlow · כל הזכויות שמורות
+            </p>
           </div>
         </div>
       </aside>
