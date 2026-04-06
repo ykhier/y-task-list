@@ -164,6 +164,14 @@ export function useEvents() {
     await supabase.from('sessions').delete().eq('task_id', taskId)
   }, [supabase])
 
+  const deleteEventsByTaskIds = useCallback(async (taskIds: string[]) => {
+    if (taskIds.length === 0) return
+
+    const uniqueTaskIds = Array.from(new Set(taskIds))
+    setEvents((prev) => prev.filter((event) => !event.task_id || !uniqueTaskIds.includes(event.task_id)))
+    await supabase.from('sessions').delete().in('task_id', uniqueTaskIds)
+  }, [supabase])
+
   return {
     events,
     loading,
@@ -173,6 +181,7 @@ export function useEvents() {
     updateEvent,
     deleteEvent,
     deleteEventByTaskId,
+    deleteEventsByTaskIds,
     refetchEvents: fetchEvents,
   }
 }

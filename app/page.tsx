@@ -69,9 +69,6 @@ export default function AppPage() {
               tasks={tasks}
               events={events}
               tutorials={tutorials}
-              onDeleteTask={recurringActions.deleteTask}
-              onDeleteEvent={recurringActions.deleteEvent}
-              onDeleteTutorial={recurringActions.deleteTutorial}
               onEditTask={recurringActions.updateTask}
               onEditEvent={openEditEvent}
             />

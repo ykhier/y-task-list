@@ -241,6 +241,23 @@ export function useTasks() {
     }
   }, [fetchTasks, supabase, user])
 
+  const deleteTasksByIds = useCallback(async (ids: string[]) => {
+    if (!user || ids.length === 0) return
+
+    const uniqueIds = Array.from(new Set(ids))
+    setTasks((prev) => {
+      const nextTasks = prev.filter((task) => !uniqueIds.includes(task.id))
+      writeCachedTasks(user.id, nextTasks)
+      return nextTasks
+    })
+
+    const { error } = await supabase.from('tasks').delete().in('id', uniqueIds)
+    if (error) {
+      setError(error.message)
+      void fetchTasks()
+    }
+  }, [fetchTasks, supabase, user])
+
   const addTasksBatch = useCallback(async (items: NewTask[]): Promise<Task[]> => {
     if (!user || items.length === 0) return []
     const { data, error } = await supabase
@@ -273,5 +290,16 @@ export function useTasks() {
     }
   }, [fetchTasks, supabase, user])
 
-  return { tasks, loading, error, addTask, addTasksBatch, toggleTask, deleteTask, updateTask, refetchTasks: fetchTasks }
+  return {
+    tasks,
+    loading,
+    error,
+    addTask,
+    addTasksBatch,
+    toggleTask,
+    deleteTask,
+    deleteTasksByIds,
+    updateTask,
+    refetchTasks: fetchTasks,
+  }
 }

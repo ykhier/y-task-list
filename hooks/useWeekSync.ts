@@ -6,6 +6,17 @@ import { useEvents } from './useEvents'
 import { useTutorials } from './useTutorials'
 import type { Task, CalendarEvent, Tutorial } from '@/types'
 
+function getRecurringSignature(task: Task) {
+  const dayOfWeek = new Date(`${task.date}T00:00:00`).getDay()
+  return [
+    task.title.trim().toLowerCase(),
+    task.description?.trim().toLowerCase() ?? '',
+    task.time ?? '',
+    task.end_time ?? '',
+    String(dayOfWeek),
+  ].join('|')
+}
+
 /**
  * useWeekSync ties together useTasks + useEvents and implements
  * the smart sync rules:
@@ -18,12 +29,12 @@ import type { Task, CalendarEvent, Tutorial } from '@/types'
 export function useWeekSync() {
   const {
     tasks, loading: tasksLoading, error: tasksError,
-    addTask, addTasksBatch, toggleTask, deleteTask, updateTask,
+    addTask, addTasksBatch, toggleTask, deleteTask, deleteTasksByIds, updateTask,
   } = useTasks()
 
   const {
     events, loading: eventsLoading, error: eventsError,
-    addEvent, addEventsBatch, updateEvent, deleteEvent, deleteEventByTaskId,
+    addEvent, addEventsBatch, updateEvent, deleteEvent, deleteEventByTaskId, deleteEventsByTaskIds,
   } = useEvents()
 
   const {
@@ -81,11 +92,28 @@ export function useWeekSync() {
 
   const handleDeleteTask = useCallback(
     async (id: string) => {
+      const targetTask = tasks.find((task) => task.id === id)
+      if (!targetTask) {
+        await deleteTask(id)
+        await deleteEventByTaskId(id)
+        return
+      }
+
+      if (targetTask.is_recurring) {
+        const signature = getRecurringSignature(targetTask)
+        const relatedTaskIds = tasks
+          .filter((task) => task.is_recurring && getRecurringSignature(task) === signature)
+          .map((task) => task.id)
+
+        await deleteTasksByIds(relatedTaskIds)
+        await deleteEventsByTaskIds(relatedTaskIds)
+        return
+      }
+
       await deleteTask(id)
-      // Remove linked event(s) for this task
       await deleteEventByTaskId(id)
     },
-    [deleteTask, deleteEventByTaskId]
+    [tasks, deleteTask, deleteTasksByIds, deleteEventByTaskId, deleteEventsByTaskIds]
   )
 
   const handleUpdateTask = useCallback(

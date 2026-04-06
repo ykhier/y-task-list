@@ -17,9 +17,6 @@ interface RecurringViewProps {
   tasks: Task[]
   events: CalendarEvent[]
   tutorials: CalendarEvent[]
-  onDeleteTask: (id: string) => Promise<void>
-  onDeleteEvent: (id: string) => Promise<void>
-  onDeleteTutorial: (id: string) => Promise<void>
   onEditTask: (id: string, data: Partial<Task>) => Promise<void>
   onEditEvent: (event: CalendarEvent) => void
 }
@@ -28,9 +25,6 @@ export default function RecurringView({
   tasks,
   events,
   tutorials,
-  onDeleteTask,
-  onDeleteEvent,
-  onDeleteTutorial,
   onEditTask,
   onEditEvent,
 }: RecurringViewProps) {
@@ -53,17 +47,6 @@ export default function RecurringView({
   const byDay = useMemo(() => groupGridItemsByDay(gridItems), [gridItems])
   const chipsByDay = useMemo(() => groupPatternsByDay(taskChips), [taskChips])
   const hasAnything = gridItems.length > 0 || taskChips.length > 0
-
-  const handleDeleteTimedItem = async (item: GridItem) => {
-    setSelected(null)
-    const deleteFn = item.type === 'task'
-      ? onDeleteTask
-      : item.type === 'tutorial'
-        ? onDeleteTutorial
-        : onDeleteEvent
-
-    await Promise.all(item.allIds.map((id) => deleteFn(id)))
-  }
 
   const handleEditTimedItem = (item: GridItem) => {
     setSelected(null)
@@ -95,11 +78,7 @@ export default function RecurringView({
           mobileScrollRef={mobileScrollRef}
           onSelect={setSelected}
           onEditTimedItem={handleEditTimedItem}
-          onDeleteTimedItem={handleDeleteTimedItem}
           onEditChip={setEditingTask}
-          onDeleteChip={(taskIds) => {
-            void Promise.all(taskIds.map((id) => onDeleteTask(id)))
-          }}
         />
       )}
 
