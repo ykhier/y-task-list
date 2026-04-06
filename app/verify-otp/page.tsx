@@ -1,53 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Spinner from "@/components/ui/Spinner";
+import CountdownTimer, {
+  type CountdownTimerHandle,
+} from "@/components/ui/CountdownTimer";
 
 export default function VerifyOtpPage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const timerRef = useRef<CountdownTimerHandle>(null);
   const router = useRouter();
-
-  const fmt = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
-  const startTimer = (seconds = 60) => {
-    setTimeLeft(seconds);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current!);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-  };
-
-  useEffect(() => {
-    if (timeLeft === 0) {
-      router.push("/login");
-    }
-  }, [timeLeft, router]);
-
-  // Start countdown immediately — OTP was already sent by the login page
-  useEffect(() => {
-    startTimer(60);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const getToken = () => {
     if (typeof window === "undefined") return null;
@@ -73,7 +44,7 @@ export default function VerifyOtpPage() {
       const data = await res.json();
       setError(data.error ?? "שגיאה בשליחת הקוד");
     } else {
-      startTimer(60);
+      timerRef.current?.reset(5);
     }
     setResending(false);
   };
@@ -103,7 +74,6 @@ export default function VerifyOtpPage() {
       if (userId) localStorage.setItem("otp_verified", userId);
       sessionStorage.removeItem("otp_token");
       sessionStorage.removeItem("otp_user_id");
-      if (timerRef.current) clearInterval(timerRef.current);
       window.location.href = "/";
     } else {
       const data = await res.json();
@@ -115,8 +85,8 @@ export default function VerifyOtpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100 opacity-60 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-60 blur-3xl" />
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100 opacity-300 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-300 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
@@ -132,10 +102,13 @@ export default function VerifyOtpPage() {
               <p className="text-sm text-slate-500 mt-1">
                 הקוד נשלח לאימייל שלך
               </p>
-              <div
-                className={`text-2xl font-bold mt-2 tabular-nums ${timeLeft <= 10 ? "text-red-500" : "text-blue-500"}`}
-              >
-                {fmt(timeLeft)}
+              <div className="mt-2">
+                <CountdownTimer
+                  ref={timerRef}
+                  minutes={5}
+                  onTick={setTimeLeft}
+                  onExpire={() => router.push("/login")}
+                />
               </div>
             </div>
           </div>
@@ -166,7 +139,7 @@ export default function VerifyOtpPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="text-sm text-red-3000 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -189,11 +162,22 @@ export default function VerifyOtpPage() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={resending || timeLeft > 0}
+              disabled={resending}
               className="text-sm text-blue-500 hover:text-blue-600 text-center disabled:opacity-40 transition-opacity"
             >
               {resending ? "שולח..." : "שלח קוד מחדש"}
             </button>
+
+            <div className="border-t border-slate-100 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/login")}
+              >
+                להתחברות
+              </Button>
+            </div>
           </form>
         </div>
 

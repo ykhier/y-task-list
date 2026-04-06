@@ -36,7 +36,7 @@ export default function LoginPage() {
         code === "email_not_confirmed";
       setError(
         isUnconfirmed
-          ? "יש לאמת את האימייל לפני ההתחברות — בדוק את תיבת הדואר שלך"
+          ? "יש לאמת את האימייל לפני ההתחברות - בדוק את תיבת הדואר שלך"
           : "אימייל או סיסמא שגויים",
       );
       setLoading(false);

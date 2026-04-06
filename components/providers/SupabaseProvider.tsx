@@ -125,8 +125,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("otp_verified");
     }
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      window.location.href = "/login";
+    }
   };
 
   if (loading && !initialResolvedRef.current) {

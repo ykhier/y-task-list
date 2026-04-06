@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const code = Math.floor(100000 + Math.random() * 900000).toString()
-  const expiresAt = new Date(Date.now() + 60 * 1000)
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
   // run profile check and old-code cleanup in parallel
   const [profileResult] = await Promise.all([
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
           <div style="background: #eff6ff; border-radius: 12px; padding: 24px; text-align: center; font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #3b82f6; margin: 20px 0;">
             ${code}
           </div>
-          <p style="color: #94a3b8; font-size: 14px;">הקוד תקף לדקה אחת בלבד.</p>
+          <p style="color: #94a3b8; font-size: 14px;">הקוד תקף ל-5 דקות בלבד.</p>
         </div>
       `,
     })
