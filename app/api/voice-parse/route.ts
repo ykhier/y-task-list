@@ -47,24 +47,31 @@ export async function POST(req: NextRequest) {
     `- "endTime": "HH:MM" | null  (compute from startTime + spoken duration; null if neither start nor duration given)\n` +
     `- "isRecurring": boolean | null  (true="קבוע"/"כל שבוע"/"שבועי", false="לא קבוע"; null if not mentioned)\n` +
     `- "color": "blue"|"green"|"orange"|"purple"|"red" | null  (כחול=blue,ירוק=green,כתום=orange,סגול=purple,אדום=red; null if not mentioned)\n` +
-    `- "tutorial": { "dayIndex", "startTime", "endTime", "isRecurring" } | null  (only if "תרגול"/"תרגיל" mentioned; inner fields also null if not given)\n\n` +
+    `- "tutorial": { "dayIndex", "startTime", "endTime", "isRecurring" } | null  (only if "תרגול"/"תרגיל" mentioned; inner fields also null if not given)\n` +
+    `- "feedback": string  (ALWAYS present — a concise Hebrew sentence about what you understood:\n` +
+    `    • If ALL planner fields are null (nothing relevant detected): start with "לא הבנתי , " then briefly explain what was said is not relevant, and give a short example e.g. "לא הבנתי , נסה למשל ׳הרצאת מתמטיקה ביום שני 10:00׳"\n` +
+    `    • If fields were extracted (new entry): summarize what was captured, e.g. "זיהיתי: הרצאת מתמטיקה · יום שני · 10:00–11:00"\n` +
+    `    • If it was an update command: confirm the change, e.g. "עדכנתי שעה ל-16:00" or "עדכנתי יום לרביעי"\n` +
+    `    • Keep it under 60 chars. No punctuation at the end.)\n\n` +
     `IMPORTANT scoping rule: "קבוע"/"כל שבוע" that appears in the tutorial part of the sentence → tutorial.isRecurring=true (NOT top-level isRecurring). "קבוע" in the lecture part → top-level isRecurring=true.\n\n` +
     `Today=${DAY_NAMES[todayDayIndex]}(${todayDayIndex}). היום=${todayDayIndex}, מחר=${tomorrowDayIndex}.\n` +
     `Durations: שעה=60m, שעה וחצי=90m, שעתיים=120m, רבע שעה=15m.\n\n` +
     `Examples:\n` +
-    `"שנה שעה ל-16:00" → {"title":null,"dayIndex":null,"startTime":"16:00","endTime":null,"isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"הרצאת מתמטיקה ביום שני 10:00 שעה" → {"title":"הרצאת מתמטיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"תרגול ביום שלישי 14:00 שעה וחצי קבוע" → {"title":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":{"dayIndex":2,"startTime":"14:00","endTime":"15:30","isRecurring":true}}\n` +
-    `"הרצאת פיזיקה ביום שני 10:00 שעה, תרגול ביום חמישי 17:00 שעתיים קבוע" → {"title":"הרצאת פיזיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":{"dayIndex":4,"startTime":"17:00","endTime":"19:00","isRecurring":true}}\n` +
-    `"הרצאת פיזיקה קבועה ביום שני 10:00 שעה, תרגול ביום חמישי 17:00 שעתיים" → {"title":"הרצאת פיזיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":true,"color":null,"tutorial":{"dayIndex":4,"startTime":"17:00","endTime":"19:00","isRecurring":null}}\n` +
-    `"שנה יום לרביעי" → {"title":null,"dayIndex":3,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"עדכן שעת סיום ל-18:00" → {"title":null,"dayIndex":null,"startTime":null,"endTime":"18:00","isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"שנה כותרת ל-הרצאת כימיה" → {"title":"הרצאת כימיה","dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"הרצאת רשתות ביום שני 10:00 שעה" → {"title":"הרצאת רשתות","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"הרצאה ביום שני 10:00 שעה" → {"title":null,"dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"תרגול ביום שישי" → {"title":null,"description":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":{"dayIndex":5,"startTime":null,"endTime":null,"isRecurring":null}}\n` +
-    `"ללמוד מתמטיקה ביום שני 10:00 שעה תיאור פרק 3 גבולות" → {"title":"ללמוד מתמטיקה","description":"פרק 3 גבולות","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null}\n` +
-    `"פגישה עם דן ביום רביעי 14:00 עם הערה להביא מסמכים" → {"title":"פגישה עם דן","description":"להביא מסמכים","dayIndex":3,"startTime":"14:00","endTime":null,"isRecurring":null,"color":null,"tutorial":null}`
+    `"שנה שעה ל-16:00" → {"title":null,"dayIndex":null,"startTime":"16:00","endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"עדכנתי שעת התחלה ל-16:00"}\n` +
+    `"הרצאת מתמטיקה ביום שני 10:00 שעה" → {"title":"הרצאת מתמטיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null,"feedback":"זיהיתי: הרצאת מתמטיקה · יום שני · 10:00–11:00"}\n` +
+    `"מה השעה עכשיו?" → {"title":null,"description":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"לא הבנתי, נסה למשל ׳הרצאת מתמטיקה ביום שני 10:00׳"}\n` +
+    `"אוקיי תודה" → {"title":null,"description":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"לא הבנתי, נסה למשל ׳פגישה ביום רביעי 14:00׳"}\n` +
+    `"תרגול ביום שלישי 14:00 שעה וחצי קבוע" → {"title":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":{"dayIndex":2,"startTime":"14:00","endTime":"15:30","isRecurring":true},"feedback":"זיהיתי תרגול: יום שלישי · 14:00–15:30 · קבוע"}\n` +
+    `"הרצאת פיזיקה ביום שני 10:00 שעה, תרגול ביום חמישי 17:00 שעתיים קבוע" → {"title":"הרצאת פיזיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":{"dayIndex":4,"startTime":"17:00","endTime":"19:00","isRecurring":true},"feedback":"זיהיתי: הרצאת פיזיקה · שני 10:00 + תרגול חמישי 17:00"}\n` +
+    `"הרצאת פיזיקה קבועה ביום שני 10:00 שעה, תרגול ביום חמישי 17:00 שעתיים" → {"title":"הרצאת פיזיקה","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":true,"color":null,"tutorial":{"dayIndex":4,"startTime":"17:00","endTime":"19:00","isRecurring":null},"feedback":"זיהיתי: הרצאת פיזיקה קבועה · שני 10:00 + תרגול חמישי 17:00"}\n` +
+    `"שנה יום לרביעי" → {"title":null,"dayIndex":3,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"עדכנתי יום לרביעי"}\n` +
+    `"עדכן שעת סיום ל-18:00" → {"title":null,"dayIndex":null,"startTime":null,"endTime":"18:00","isRecurring":null,"color":null,"tutorial":null,"feedback":"עדכנתי שעת סיום ל-18:00"}\n` +
+    `"שנה כותרת ל-הרצאת כימיה" → {"title":"הרצאת כימיה","dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"עדכנתי כותרת ל׳הרצאת כימיה׳"}\n` +
+    `"הרצאת רשתות ביום שני 10:00 שעה" → {"title":"הרצאת רשתות","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null,"feedback":"זיהיתי: הרצאת רשתות · יום שני · 10:00–11:00"}\n` +
+    `"הרצאה ביום שני 10:00 שעה" → {"title":null,"dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null,"feedback":"זיהיתי: יום שני · 10:00–11:00"}\n` +
+    `"תרגול ביום שישי" → {"title":null,"description":null,"dayIndex":null,"startTime":null,"endTime":null,"isRecurring":null,"color":null,"tutorial":{"dayIndex":5,"startTime":null,"endTime":null,"isRecurring":null},"feedback":"זיהיתי תרגול: יום שישי"}\n` +
+    `"ללמוד מתמטיקה ביום שני 10:00 שעה תיאור פרק 3 גבולות" → {"title":"ללמוד מתמטיקה","description":"פרק 3 גבולות","dayIndex":1,"startTime":"10:00","endTime":"11:00","isRecurring":null,"color":null,"tutorial":null,"feedback":"זיהיתי: ללמוד מתמטיקה · יום שני · 10:00–11:00"}\n` +
+    `"פגישה עם דן ביום רביעי 14:00 עם הערה להביא מסמכים" → {"title":"פגישה עם דן","description":"להביא מסמכים","dayIndex":3,"startTime":"14:00","endTime":null,"isRecurring":null,"color":null,"tutorial":null,"feedback":"זיהיתי: פגישה עם דן · יום רביעי · 14:00"}`
 
   const parseVoice = traceable(
     async () => {
@@ -118,8 +125,9 @@ export async function POST(req: NextRequest) {
   )
 
   try {
-    const parsed = await parseVoice()
-    return NextResponse.json({ parsed })
+    const result = await parseVoice()
+    const { feedback, ...parsed } = result
+    return NextResponse.json({ parsed, feedback: feedback ?? null })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'שגיאה בעיבוד הקול'
     return NextResponse.json({ error: message }, { status: 500 })

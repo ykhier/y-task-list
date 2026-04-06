@@ -6,11 +6,12 @@ import { useVoiceInput, type ParsedVoiceInput } from '@/hooks/useVoiceInput'
 
 interface VoiceInputButtonProps {
   onParsed: (data: ParsedVoiceInput) => void
+  onFeedback?: (text: string) => void
   className?: string
 }
 
-export function VoiceInputButton({ onParsed, className }: VoiceInputButtonProps) {
-  const { isRecording, isProcessing, error, startRecording, stopRecording } = useVoiceInput(onParsed)
+export function VoiceInputButton({ onParsed, onFeedback, className }: VoiceInputButtonProps) {
+  const { isRecording, isProcessing, error, startRecording, stopRecording } = useVoiceInput(onParsed, onFeedback)
 
   return (
     <div className={className}>

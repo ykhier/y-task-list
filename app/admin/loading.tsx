@@ -1,4 +1,4 @@
-import Spinner from '@/components/ui/Spinner'
+import Spinner from "@/components/ui/Spinner";
 
 export default function AdminLoading() {
   return (
@@ -16,13 +16,10 @@ export default function AdminLoading() {
               <p className="text-base font-semibold text-slate-800">
                 טוען את דף הניהול
               </p>
-              <p className="text-sm text-slate-500">
-                מביא את המשתמשים וההרשאות שלך
-              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

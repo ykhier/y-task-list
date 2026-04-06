@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -125,6 +125,14 @@ export default function TaskForm({
   );
   const [conflict, setConflict] = useState<string | null>(null);
   const [timeError, setTimeError] = useState<string | null>(null);
+  const [voiceFeedback, setVoiceFeedback] = useState<string | null>(null);
+  const voiceFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleVoiceFeedback = (text: string) => {
+    if (voiceFeedbackTimerRef.current) clearTimeout(voiceFeedbackTimerRef.current);
+    setVoiceFeedback(text);
+    voiceFeedbackTimerRef.current = setTimeout(() => setVoiceFeedback(null), 4500);
+  };
 
   useEffect(() => {
     if (!editTask) return;
@@ -205,7 +213,7 @@ export default function TaskForm({
             required
             className="flex-1"
           />
-          <VoiceInputButton onParsed={applyParsed} />
+          <VoiceInputButton onParsed={applyParsed} onFeedback={handleVoiceFeedback} />
         </div>
       </div>
 
@@ -296,6 +304,11 @@ export default function TaskForm({
         </div>
       )}
 
+      {voiceFeedback && (
+        <p className="rounded-md px-3 py-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 text-right">
+          {voiceFeedback}
+        </p>
+      )}
       <div className="flex justify-end gap-2 pt-1">
         <Button
           type="button"

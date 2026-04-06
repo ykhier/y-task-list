@@ -18,7 +18,23 @@ export type ParsedVoiceInput = {
   } | null
 }
 
-export function useVoiceInput(onParsed: (data: ParsedVoiceInput) => void) {
+function isEmptyParse(parsed: ParsedVoiceInput): boolean {
+  return (
+    parsed.title === null &&
+    parsed.description === null &&
+    parsed.dayIndex === null &&
+    parsed.startTime === null &&
+    parsed.endTime === null &&
+    parsed.isRecurring === null &&
+    parsed.color === null &&
+    parsed.tutorial === null
+  )
+}
+
+export function useVoiceInput(
+  onParsed: (data: ParsedVoiceInput) => void,
+  onFeedback?: (text: string) => void,
+) {
   const [isRecording, setIsRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,8 +68,10 @@ export function useVoiceInput(onParsed: (data: ParsedVoiceInput) => void) {
         const res = await fetch('/api/voice-parse', { method: 'POST', body: fd })
         const json = await res.json()
         if (!res.ok || json.error) throw new Error(json.error ?? 'שגיאה בעיבוד הקול')
-        const { parsed } = json
-        onParsed(parsed as ParsedVoiceInput)
+        const { parsed, feedback: feedbackText } = json
+        const irrelevant = isEmptyParse(parsed as ParsedVoiceInput)
+        if (irrelevant && feedbackText) onFeedback?.(feedbackText as string)
+        if (!irrelevant) onParsed(parsed as ParsedVoiceInput)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'שגיאה')
       } finally {
