@@ -1,17 +1,36 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Spinner from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 const AUTH_PATHS = ["/login", "/signup", "/verify-otp"];
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
+const ADMIN_CACHE_PREFIX = "weekflow_admin_status:";
 
 const UserContext = createContext<User | null>(null);
 const AdminContext = createContext<boolean>(false);
 const SignOutContext = createContext<() => Promise<void>>(async () => {});
+
+function getAdminCacheKey(userId: string) {
+  return `${ADMIN_CACHE_PREFIX}${userId}`;
+}
+
+function readCachedAdminStatus(userId: string): boolean | null {
+  if (typeof window === "undefined") return null;
+
+  const value = window.sessionStorage.getItem(getAdminCacheKey(userId));
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return null;
+}
+
+function writeCachedAdminStatus(userId: string, isAdmin: boolean) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(getAdminCacheKey(userId), String(isAdmin));
+}
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -20,19 +39,66 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient());
   const otpSendingRef = useRef(false);
   const initialResolvedRef = useRef(false);
+  const sessionRequestIdRef = useRef(0);
+  const adminRequestIdRef = useRef(0);
+  const lastAdminUserIdRef = useRef<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchIsAdmin = async (userId: string): Promise<boolean> => {
-    const { data } = await supabase
+  const applyAdminStatus = (userId: string, nextIsAdmin: boolean) => {
+    lastAdminUserIdRef.current = userId;
+    setIsAdmin(nextIsAdmin);
+    writeCachedAdminStatus(userId, nextIsAdmin);
+  };
+
+  const clearAdminStatus = () => {
+    lastAdminUserIdRef.current = null;
+    setIsAdmin(false);
+  };
+
+  const fetchIsAdmin = async (
+    userId: string,
+    options?: { allowCachedValue?: boolean }
+  ): Promise<boolean> => {
+    const requestId = ++adminRequestIdRef.current;
+    const cachedValue = options?.allowCachedValue
+      ? readCachedAdminStatus(userId)
+      : null;
+
+    if (cachedValue !== null) {
+      applyAdminStatus(userId, cachedValue);
+    }
+
+    const { data, error } = await supabase
       .from("profiles")
       .select("is_admin")
       .eq("id", userId)
       .single();
-    return data?.is_admin ?? false;
+
+    if (requestId !== adminRequestIdRef.current) {
+      return cachedValue ?? false;
+    }
+
+    if (error) {
+      if (cachedValue !== null) {
+        return cachedValue;
+      }
+
+      if (lastAdminUserIdRef.current !== userId) {
+        setIsAdmin(false);
+      }
+
+      return false;
+    }
+
+    const nextIsAdmin = data?.is_admin ?? false;
+    applyAdminStatus(userId, nextIsAdmin);
+    return nextIsAdmin;
   };
 
   const resolveSession = async (options?: { keepVisibleContent?: boolean }) => {
+    const requestId = ++sessionRequestIdRef.current;
+
     if (!options?.keepVisibleContent) {
       setLoading(true);
     }
@@ -40,14 +106,24 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
+    if (requestId !== sessionRequestIdRef.current) {
+      return;
+    }
+
     const nextUser = session?.user ?? null;
     setUser(nextUser);
 
     if (nextUser) {
-      const admin = await fetchIsAdmin(nextUser.id);
-      setIsAdmin(admin);
+      const cachedValue = readCachedAdminStatus(nextUser.id);
+
+      if (cachedValue !== null) {
+        applyAdminStatus(nextUser.id, cachedValue);
+      }
+
+      await fetchIsAdmin(nextUser.id, { allowCachedValue: true });
     } else {
-      setIsAdmin(false);
+      clearAdminStatus();
     }
 
     initialResolvedRef.current = true;
@@ -66,10 +142,15 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
 
       if (nextUser) {
-        const admin = await fetchIsAdmin(nextUser.id);
-        setIsAdmin(admin);
+        const cachedValue = readCachedAdminStatus(nextUser.id);
+
+        if (cachedValue !== null) {
+          applyAdminStatus(nextUser.id, cachedValue);
+        }
+
+        await fetchIsAdmin(nextUser.id, { allowCachedValue: true });
       } else {
-        setIsAdmin(false);
+        clearAdminStatus();
       }
 
       setLoading(false);
@@ -125,6 +206,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("otp_verified");
     }
+
+    clearAdminStatus();
+
     try {
       await supabase.auth.signOut();
     } finally {
@@ -137,9 +221,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Spinner className="h-8 w-8 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            {"\u05de\u05ea\u05d7\u05d1\u05e8..."}
-          </p>
+          <p className="text-sm text-muted-foreground">מתחבר...</p>
         </div>
       </div>
     );
