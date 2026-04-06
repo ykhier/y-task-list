@@ -33,10 +33,13 @@ export async function GET(request: Request) {
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   let sent = 0
+  const debugLog: object[] = []
 
   await Promise.allSettled(
     profiles.map(async (profile) => {
       const { timedItems, untimedTasks } = await fetchDigestForUser(profile.id, tomorrow)
+
+      debugLog.push({ email: profile.email, tomorrow, timedItems, untimedTasks })
 
       const html = buildDigestHtml({
         fullName: profile.full_name ?? '',
@@ -56,5 +59,5 @@ export async function GET(request: Request) {
     }),
   )
 
-  return NextResponse.json({ ok: true, sent })
+  return NextResponse.json({ ok: true, sent, debug: debugLog })
 }
