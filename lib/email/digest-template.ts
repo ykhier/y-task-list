@@ -113,9 +113,7 @@ export function buildDigestHtml({
         <!-- HEADER -->
         <tr>
           <td align="center" style="background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); border-radius:20px; padding:28px 28px 24px;">
-            <p style="margin:0 0 12px; font-size:26px; line-height:1; text-align:center;">
-              [WeekFlow]
-            </p>
+            <p style="margin:0 0 12px; font-size:26px; line-height:1; text-align:center;">&#128197;</p>
             <h1 style="margin:0 0 4px; color:#fff; font-size:22px; font-weight:700; letter-spacing:-0.3px; text-align:center;">
               לוז למחר
             </h1>
