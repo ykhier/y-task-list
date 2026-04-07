@@ -8,6 +8,7 @@ import type { Task } from '@/types'
 type NewTask = Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>
 
 const FETCH_TIMEOUT_MS = 12000
+const MUTATION_TIMEOUT_MS = 15000
 const inMemoryTasksCache = new Map<string, Task[]>()
 
 function dedupeTasks(tasks: Task[]) {
@@ -25,6 +26,10 @@ function dedupeTasks(tasks: Task[]) {
 
 function getTasksCacheKey(userId: string) {
   return `weekflow.tasks.${userId}`
+}
+
+function isBrowserOffline() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
 }
 
 function readCachedTasks(userId: string): Task[] | null {
@@ -55,6 +60,18 @@ function writeCachedTasks(userId: string, tasks: Task[]) {
   }
 }
 
+function getFetchTimeoutMessage() {
+  return 'טעינת המשימות ארכה יותר מדי זמן.'
+}
+
+function getMutationTimeoutMessage() {
+  return 'שמירת המשימה נמשכת יותר מדי זמן. בדוק את החיבור ונסה שוב.'
+}
+
+function getOfflineMessage() {
+  return 'אין חיבור לרשת כרגע. ברגע שהחיבור יחזור אפשר לשמור שוב.'
+}
+
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,11 +81,36 @@ export function useTasks() {
   const requestIdRef = useRef(0)
   const hasResolvedInitialFetchRef = useRef(false)
 
+  const runWithTimeout = useCallback(async <T,>(
+    operation: PromiseLike<T>,
+    timeoutMs: number,
+    message: string
+  ): Promise<T> => {
+    const wrappedOperation = Promise.resolve(operation)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        reject(new Error(message))
+      }, timeoutMs)
+
+      wrappedOperation.finally(() => window.clearTimeout(timeoutId)).catch(() => {
+        // Swallow cleanup rejection here; the original promise is awaited below.
+      })
+    })
+
+    return Promise.race([wrappedOperation, timeoutPromise])
+  }, [])
+
   const fetchTasks = useCallback(async (options?: { background?: boolean }) => {
     if (!user) {
       setTasks([])
       setLoading(false)
       hasResolvedInitialFetchRef.current = false
+      return
+    }
+
+    if (isBrowserOffline()) {
+      setError(getOfflineMessage())
+      setLoading(false)
       return
     }
 
@@ -81,10 +123,6 @@ export function useTasks() {
 
     setError(null)
 
-    const timeout = new Promise<never>((_, reject) => {
-      window.setTimeout(() => reject(new Error('טעינת המשימות ארכה יותר מדי זמן.')), FETCH_TIMEOUT_MS)
-    })
-
     try {
       const query = supabase
         .from('tasks')
@@ -92,7 +130,12 @@ export function useTasks() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
-      const { data, error } = await Promise.race([query, timeout])
+      const { data, error } = await runWithTimeout(
+        query,
+        FETCH_TIMEOUT_MS,
+        getFetchTimeoutMessage()
+      )
+
       if (requestId !== requestIdRef.current) return
 
       if (error) {
@@ -112,7 +155,7 @@ export function useTasks() {
         setLoading(false)
       }
     }
-  }, [supabase, user])
+  }, [runWithTimeout, supabase, user])
 
   useEffect(() => {
     if (!user) {
@@ -137,8 +180,14 @@ export function useTasks() {
       }
     }
 
+    const refreshWhenOnline = () => {
+      setError(null)
+      void fetchTasks({ background: true })
+    }
+
     window.addEventListener('focus', refreshIfVisible)
     window.addEventListener('pageshow', refreshIfVisible)
+    window.addEventListener('online', refreshWhenOnline)
     document.addEventListener('visibilitychange', refreshIfVisible)
 
     const channel = supabase
@@ -182,6 +231,7 @@ export function useTasks() {
       requestIdRef.current += 1
       window.removeEventListener('focus', refreshIfVisible)
       window.removeEventListener('pageshow', refreshIfVisible)
+      window.removeEventListener('online', refreshWhenOnline)
       document.removeEventListener('visibilitychange', refreshIfVisible)
       supabase.removeChannel(channel)
     }
@@ -193,23 +243,49 @@ export function useTasks() {
   }, [user, tasks])
 
   const addTask = useCallback(async (data: NewTask): Promise<Task | null> => {
-    if (!user) return null
-    const { data: task, error } = await supabase
-      .from('tasks')
-      .insert({ ...data, user_id: user.id, is_completed: false })
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
+    if (!user) {
+      setError('המשתמש לא מחובר.')
       return null
     }
-    setTasks((prev) => {
-      const nextTasks = dedupeTasks([task, ...prev])
-      writeCachedTasks(user.id, nextTasks)
-      return nextTasks
-    })
-    return task
-  }, [supabase, user])
+
+    if (isBrowserOffline()) {
+      setError(getOfflineMessage())
+      return null
+    }
+
+    setError(null)
+
+    try {
+      const operation = supabase
+        .from('tasks')
+        .insert({ ...data, user_id: user.id, is_completed: false })
+        .select()
+        .single()
+
+      const { data: task, error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        getMutationTimeoutMessage()
+      )
+
+      if (error) {
+        setError(error.message)
+        return null
+      }
+
+      setTasks((prev) => {
+        const nextTasks = dedupeTasks([task, ...prev])
+        writeCachedTasks(user.id, nextTasks)
+        return nextTasks
+      })
+
+      return task
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בשמירת המשימה')
+      void fetchTasks({ background: true })
+      return null
+    }
+  }, [fetchTasks, runWithTimeout, supabase, user])
 
   const toggleTask = useCallback(async (id: string, completed: boolean) => {
     setTasks((prev) => {
@@ -217,16 +293,27 @@ export function useTasks() {
       if (user) writeCachedTasks(user.id, nextTasks)
       return nextTasks
     })
-    const { error } = await supabase.from('tasks').update({ is_completed: completed }).eq('id', id)
-    if (error) {
-      setError(error.message)
+
+    try {
+      const operation = supabase.from('tasks').update({ is_completed: completed }).eq('id', id)
+      const { error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        'עדכון המשימה נמשך יותר מדי זמן. נסה שוב.'
+      )
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בעדכון המשימה')
       setTasks((prev) => {
         const nextTasks = prev.map((t) => (t.id === id ? { ...t, is_completed: !completed } : t))
         if (user) writeCachedTasks(user.id, nextTasks)
         return nextTasks
       })
     }
-  }, [supabase, user])
+  }, [runWithTimeout, supabase, user])
 
   const deleteTask = useCallback(async (id: string) => {
     setTasks((prev) => {
@@ -234,12 +321,23 @@ export function useTasks() {
       if (user) writeCachedTasks(user.id, nextTasks)
       return nextTasks
     })
-    const { error } = await supabase.from('tasks').delete().eq('id', id)
-    if (error) {
-      setError(error.message)
+
+    try {
+      const operation = supabase.from('tasks').delete().eq('id', id)
+      const { error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        'מחיקת המשימה נמשכת יותר מדי זמן. נסה שוב.'
+      )
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה במחיקת המשימה')
       void fetchTasks()
     }
-  }, [fetchTasks, supabase, user])
+  }, [fetchTasks, runWithTimeout, supabase, user])
 
   const deleteTasksByIds = useCallback(async (ids: string[]) => {
     if (!user || ids.length === 0) return
@@ -251,31 +349,62 @@ export function useTasks() {
       return nextTasks
     })
 
-    const { error } = await supabase.from('tasks').delete().in('id', uniqueIds)
-    if (error) {
-      setError(error.message)
+    try {
+      const operation = supabase.from('tasks').delete().in('id', uniqueIds)
+      const { error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        'מחיקת המשימות נמשכת יותר מדי זמן. נסה שוב.'
+      )
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה במחיקת המשימות')
       void fetchTasks()
     }
-  }, [fetchTasks, supabase, user])
+  }, [fetchTasks, runWithTimeout, supabase, user])
 
   const addTasksBatch = useCallback(async (items: NewTask[]): Promise<Task[]> => {
     if (!user || items.length === 0) return []
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert(items.map((item) => ({ ...item, user_id: user.id, is_completed: false })))
-      .select()
-    if (error) {
-      setError(error.message)
+
+    if (isBrowserOffline()) {
+      setError(getOfflineMessage())
       return []
     }
-    const saved = data ?? []
-    setTasks((prev) => {
-      const nextTasks = dedupeTasks([...saved, ...prev])
-      writeCachedTasks(user.id, nextTasks)
-      return nextTasks
-    })
-    return saved
-  }, [supabase, user])
+
+    try {
+      const operation = supabase
+        .from('tasks')
+        .insert(items.map((item) => ({ ...item, user_id: user.id, is_completed: false })))
+        .select()
+
+      const { data, error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        'שמירת המשימות נמשכת יותר מדי זמן. נסה שוב.'
+      )
+
+      if (error) {
+        setError(error.message)
+        return []
+      }
+
+      const saved = data ?? []
+      setTasks((prev) => {
+        const nextTasks = dedupeTasks([...saved, ...prev])
+        writeCachedTasks(user.id, nextTasks)
+        return nextTasks
+      })
+
+      return saved
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בשמירת המשימות')
+      void fetchTasks({ background: true })
+      return []
+    }
+  }, [fetchTasks, runWithTimeout, supabase, user])
 
   const updateTask = useCallback(async (id: string, data: Partial<Task>) => {
     setTasks((prev) => {
@@ -283,12 +412,23 @@ export function useTasks() {
       if (user) writeCachedTasks(user.id, nextTasks)
       return nextTasks
     })
-    const { error } = await supabase.from('tasks').update(data).eq('id', id)
-    if (error) {
-      setError(error.message)
+
+    try {
+      const operation = supabase.from('tasks').update(data).eq('id', id)
+      const { error } = await runWithTimeout(
+        operation,
+        MUTATION_TIMEOUT_MS,
+        'שמירת השינויים נמשכת יותר מדי זמן. נסה שוב.'
+      )
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בשמירת השינויים')
       void fetchTasks()
     }
-  }, [fetchTasks, supabase, user])
+  }, [fetchTasks, runWithTimeout, supabase, user])
 
   return {
     tasks,

@@ -48,21 +48,9 @@ export default function LoginPage() {
     const accessToken = signInData.session?.access_token;
 
     if (email.toLowerCase() === adminEmail.toLowerCase() && accessToken) {
-      const res = await fetch("/api/send-otp", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "שגיאה בשליחת קוד אימות");
-        await supabase.auth.signOut();
-        setLoading(false);
-        return;
-      }
-
       sessionStorage.setItem("otp_token", accessToken);
       sessionStorage.setItem("otp_user_id", signInData.user!.id);
+      sessionStorage.setItem("otp_initial_send_pending", "true");
       router.push("/verify-otp");
       return;
     }

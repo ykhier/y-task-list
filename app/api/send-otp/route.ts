@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { Resend } from 'resend'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: Request) {
   const adminClient = createAdminClient()
@@ -12,30 +12,42 @@ export async function POST(request: Request) {
 
   const token = authHeader.slice(7)
   const { data: { user }, error } = await adminClient.auth.getUser(token)
-  if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (error || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const code = Math.floor(100000 + Math.random() * 900000).toString()
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
-  // run profile check and old-code cleanup in parallel
   const [profileResult] = await Promise.all([
-    adminClient.from('profiles').select('is_admin, full_name').eq('id', user.id).single(),
+    adminClient
+      .from('profiles')
+      .select('is_admin, full_name')
+      .eq('id', user.id)
+      .single(),
     adminClient.from('otp_codes').delete().eq('user_id', user.id),
   ])
 
   const profile = profileResult.data
-  if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!profile?.is_admin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
-  await adminClient.from('otp_codes').insert({
+  const { error: insertError } = await adminClient.from('otp_codes').insert({
     user_id: user.id,
     code,
     expires_at: expiresAt.toISOString(),
   })
 
+  if (insertError) {
+    return NextResponse.json({ error: 'Failed to create otp code' }, { status: 500 })
+  }
+
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    // fire and forget — don't block the response on email delivery
-    resend.emails.send({
+
+    void resend.emails.send({
       from: 'WeekFlow <onboarding@resend.dev>',
       to: user.email!,
       subject: 'קוד אימות WeekFlow',

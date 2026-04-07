@@ -66,7 +66,7 @@ export function useWeekSync() {
 
       // If task has time → auto-create event
       if (task.time && task.end_time) {
-        await addEvent({
+        void addEvent({
           title:        task.title,
           date:         task.date,
           start_time:   task.time,

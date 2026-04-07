@@ -162,14 +162,20 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const refreshSessionWhenOnline = () => {
+      void resolveSession({ keepVisibleContent: true });
+    };
+
     window.addEventListener("focus", refreshSessionOnResume);
     window.addEventListener("pageshow", refreshSessionOnResume);
+    window.addEventListener("online", refreshSessionWhenOnline);
     document.addEventListener("visibilitychange", refreshSessionOnResume);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("focus", refreshSessionOnResume);
       window.removeEventListener("pageshow", refreshSessionOnResume);
+      window.removeEventListener("online", refreshSessionWhenOnline);
       document.removeEventListener("visibilitychange", refreshSessionOnResume);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
