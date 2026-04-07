@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Check } from "lucide-react";
@@ -25,9 +25,20 @@ export default function SignupPage() {
   const passwordMatch =
     password && confirmPassword && password === confirmPassword;
 
+  useEffect(() => {
+    if (!success) return;
+
+    const timeoutId = window.setTimeout(() => {
+      router.replace("/login");
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [router, success]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordMatch) return;
+
     setLoading(true);
     setError(null);
 
@@ -42,43 +53,38 @@ export default function SignupPage() {
       const msg = authError.message.toLowerCase();
       setError(
         msg.includes("rate limit") || msg.includes("email rate")
-          ? "נסית להירשם יותר מדי פעמים. המתן דקה ונסה שוב"
+          ? "ניסית להירשם יותר מדי פעמים. המתן קצת ונסה שוב."
           : msg.includes("already registered") ||
               msg.includes("already been registered") ||
               msg.includes("user already")
             ? "כתובת האימייל כבר רשומה במערכת"
-            : "אירעה שגיאה בהרשמה. נסה שוב",
+            : "אירעה שגיאה בהרשמה. נסה שוב."
       );
       setLoading(false);
-    } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        // Email confirmation required — show success screen instead of redirecting
-        setSuccess(true);
-      } else {
-        router.push("/");
-      }
+      return;
     }
+
+    await supabase.auth.signOut({ scope: "local" });
+    setLoading(false);
+    setSuccess(true);
   };
 
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
         <div className="relative w-full max-w-md">
-          <div className="rounded-2xl bg-white shadow-xl border border-slate-100 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="h-12 w-12 rounded-2xl bg-green-500 flex items-center justify-center shadow-md shadow-green-200">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 shadow-md shadow-green-200">
               <Check className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-xl font-bold text-slate-800">נרשמת בהצלחה!</h1>
             <p className="text-sm text-slate-500">
-              החשבון נוצר בהצלחה עבור <strong>{email}</strong>. כעת תוכל להתחבר.
+              החשבון נוצר בהצלחה עבור <strong>{email}</strong>. מעבירים אותך
+              להתחברות.
             </p>
             <Button
-              className="w-full h-10 mt-2 text-sm font-semibold"
-              onClick={() => router.push("/login")}
+              className="mt-2 h-10 w-full text-sm font-semibold"
+              onClick={() => router.replace("/login")}
             >
               עבור להתחברות
             </Button>
@@ -90,37 +96,28 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
-      {/* Decorative blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100 opacity-60 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-60 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
-        <div className="rounded-2xl bg-white shadow-xl border border-slate-100 p-8">
-          {/* Logo */}
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="h-12 w-12 rounded-2xl bg-blue-500 flex items-center justify-center shadow-md shadow-blue-200">
+        <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-xl">
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 shadow-md shadow-blue-200">
               <CalendarDays className="h-6 w-6 text-white" />
             </div>
             <div className="text-center">
-              <h1 className="text-xl font-bold text-slate-800">
-                צור חשבון חדש
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <h1 className="text-xl font-bold text-slate-800">צור חשבון חדש</h1>
+              <p className="mt-1 text-sm text-slate-500">
                 הצטרף ל-WeekFlow בחינם
               </p>
             </div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Full name */}
             <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="name"
-                className="text-sm font-medium text-slate-700"
-              >
+              <Label htmlFor="name" className="text-sm font-medium text-slate-700">
                 שם מלא
               </Label>
               <Input
@@ -134,12 +131,8 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-slate-700"
-              >
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
                 אימייל
               </Label>
               <Input
@@ -154,13 +147,12 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="flex flex-col gap-1.5">
               <Label
                 htmlFor="password"
                 className="text-sm font-medium text-slate-700"
               >
-                סיסמא
+                סיסמה
               </Label>
               <PasswordInput
                 id="password"
@@ -172,13 +164,12 @@ export default function SignupPage() {
               <PasswordStrength password={password} />
             </div>
 
-            {/* Confirm password */}
             <div className="flex flex-col gap-1.5">
               <Label
                 htmlFor="confirm"
                 className="text-sm font-medium text-slate-700"
               >
-                אימות סיסמא
+                אימות סיסמה
               </Label>
               <PasswordInput
                 id="confirm"
@@ -199,14 +190,14 @@ export default function SignupPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </p>
             )}
 
             <Button
               type="submit"
-              className="w-full h-10 mt-1 text-sm font-semibold"
+              className="mt-1 h-10 w-full text-sm font-semibold"
               disabled={loading || (!!confirmPassword && !passwordMatch)}
             >
               {loading ? (
@@ -220,19 +211,18 @@ export default function SignupPage() {
             </Button>
           </form>
 
-          {/* Login link */}
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="mt-6 text-center text-sm text-slate-500">
             כבר יש לך חשבון?{" "}
             <Link
               href="/login"
-              className="text-blue-500 hover:text-blue-600 font-semibold"
+              className="font-semibold text-blue-500 hover:text-blue-600"
             >
               התחבר
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-4">
+        <p className="mt-4 text-center text-xs text-slate-400">
           WeekFlow © 2026 · כל הזכויות שמורות
         </p>
       </div>
