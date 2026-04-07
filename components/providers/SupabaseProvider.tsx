@@ -9,6 +9,7 @@ import type { User } from "@supabase/supabase-js";
 const AUTH_PATHS = ["/login", "/signup", "/verify-otp"];
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "";
 const ADMIN_CACHE_PREFIX = "weekflow_admin_status:";
+const SIGN_OUT_TIMEOUT_MS = 4000;
 
 const UserContext = createContext<User | null>(null);
 const AdminContext = createContext<boolean>(false);
@@ -54,6 +55,33 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const clearAdminStatus = () => {
     lastAdminUserIdRef.current = null;
     setIsAdmin(false);
+  };
+
+  const clearClientAuthState = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("otp_verified");
+      sessionStorage.removeItem("otp_token");
+      sessionStorage.removeItem("otp_user_id");
+      sessionStorage.removeItem("otp_initial_send_pending");
+
+      const keysToRemove: string[] = [];
+      for (let index = 0; index < sessionStorage.length; index += 1) {
+        const key = sessionStorage.key(index);
+        if (key?.startsWith(ADMIN_CACHE_PREFIX)) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+    }
+
+    sessionRequestIdRef.current += 1;
+    adminRequestIdRef.current += 1;
+    otpSendingRef.current = true;
+    initialResolvedRef.current = true;
+    setUser(null);
+    clearAdminStatus();
+    setLoading(false);
   };
 
   const fetchIsAdmin = async (
@@ -195,9 +223,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         localStorage.getItem("otp_verified") === user.id;
 
       if (!otpVerified && !otpSendingRef.current) {
-        otpSendingRef.current = true;
-        void supabase.auth.signOut().then(() => {
-          window.location.href = "/login";
+        clearClientAuthState();
+        void supabase.auth.signOut({ scope: "local" }).finally(() => {
+          window.location.replace("/login");
         });
         return;
       }
@@ -209,17 +237,14 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }, [loading, user, isAdmin, pathname, router, supabase]);
 
   const signOut = async () => {
-    otpSendingRef.current = true;
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("otp_verified");
-    }
-
-    clearAdminStatus();
-
+    clearClientAuthState();
     try {
-      await supabase.auth.signOut();
+      await Promise.race([
+        supabase.auth.signOut({ scope: "local" }),
+        new Promise((resolve) => window.setTimeout(resolve, SIGN_OUT_TIMEOUT_MS)),
+      ]);
     } finally {
-      window.location.href = "/login";
+      window.location.replace("/login");
     }
   };
 
