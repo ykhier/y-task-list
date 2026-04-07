@@ -1,18 +1,24 @@
 export const HOUR_HEIGHT = 60
-export const GRID_START_HOUR = 8    // default start (moves earlier if early events exist)
-export const GRID_END_HOUR = 31     // always ends at 07:00 next morning (24 + 7)
-export const EARLY_START_HOUR = 6   // earliest possible start when early events exist
+export const GRID_START_HOUR = 8
+export const GRID_END_HOUR = 31
+export const EARLY_START_HOUR = 6
+export const GRID_VISIBLE_HOURS = GRID_END_HOUR - GRID_START_HOUR + 1
 
-/** Full hours array for the default grid: 08:00 – 07:00 next day */
 export const HOURS = Array.from(
-  { length: GRID_END_HOUR - GRID_START_HOUR + 1 },
-  (_, i) => i + GRID_START_HOUR,
-) // [8..31]
+  { length: GRID_VISIBLE_HOURS },
+  (_, i) => i + GRID_START_HOUR
+)
 
-/** Build a hours array from startHour up to GRID_END_HOUR. */
-export function buildHours(startHour: number = GRID_START_HOUR): number[] {
+export function getGridEndHour(startHour: number = GRID_START_HOUR): number {
+  return startHour + GRID_VISIBLE_HOURS - 1
+}
+
+export function buildHours(
+  startHour: number = GRID_START_HOUR,
+  endHour: number = getGridEndHour(startHour)
+): number[] {
   return Array.from(
-    { length: GRID_END_HOUR - startHour + 1 },
-    (_, i) => i + startHour,
+    { length: endHour - startHour + 1 },
+    (_, i) => i + startHour
   )
 }
