@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code organization principles
+
+- **Never dump all new code into a single file.** Every feature must be split into focused, single-responsibility files from the start.
+- Follow the existing folder conventions: orchestrator component in the feature folder, sub-components in a `feature-name/` sub-folder, pure helpers in a `*-utils.ts` file, constants in a `*-constants.ts` file, custom hooks in `hooks/`.
+- A component file should contain exactly one exported component. Local sub-components that are only used inside that file are the only exception, and only when they are small (< ~30 lines) and purely presentational.
+- Extract logic into hooks (`hooks/`) and pure functions (`lib/` or `*-utils.ts`) — components should read state and render, not contain business logic.
+- If a new component needs shared primitives (constants, types, utilities) with existing components, place them in the existing shared file rather than duplicating.
+
 ## Commands
 
 ```bash
