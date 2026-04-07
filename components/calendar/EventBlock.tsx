@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Repeat2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatTime12, timeRangeToHeight, timeToMinutes } from '@/lib/date'
+import { formatTime12, timeToMinutes } from '@/lib/date'
 import { HOUR_HEIGHT, GRID_START_HOUR } from './calendar-constants'
 import type { CalendarEvent } from '@/types'
 
@@ -32,12 +32,39 @@ export default function EventBlock({
 }: EventBlockProps) {
   const [isDragging, setIsDragging] = useState(false)
 
+  const isSplitStart = event.splitContinuation === 'start'
+  const isSplitEnd   = event.splitContinuation === 'end'
+
   // Post-midnight times (e.g. 01:00) are treated as 25:00 so they position
   // correctly below midnight in the extended grid.
   const [evH, evM] = event.start_time.split(':').map(Number)
   const absH = evH < gridStartHour ? evH + 24 : evH
-  const top = (absH + evM / 60) * hourHeight - gridStartHour * hourHeight
-  const height = timeRangeToHeight(event.start_time, event.end_time, hourHeight)
+
+  let top: number
+  let height: number
+
+  if (isSplitEnd) {
+    // Continuation segment: anchored at midnight (absolute hour 24), runs to end_time
+    top    = (24 - gridStartHour) * hourHeight
+    height = (timeToMinutes(event.end_time.slice(0, 5)) / 60) * hourHeight
+  } else if (isSplitStart) {
+    // First segment: from start_time to midnight (24:00 absolute)
+    top    = (absH + evM / 60) * hourHeight - gridStartHour * hourHeight
+    height = ((24 * 60 - timeToMinutes(event.start_time.slice(0, 5))) / 60) * hourHeight
+  } else {
+    top = (absH + evM / 60) * hourHeight - gridStartHour * hourHeight
+    const startMinsNorm = timeToMinutes(event.start_time.slice(0, 5))
+    const endMinsNorm   = timeToMinutes(event.end_time.slice(0, 5))
+    // Correctly handle events ending exactly at midnight (00:00) or crossing midnight
+    const durationMins =
+      endMinsNorm > startMinsNorm
+        ? endMinsNorm - startMinsNorm           // normal: e.g. 09:00–10:30
+        : endMinsNorm === 0
+        ? 24 * 60 - startMinsNorm               // ends at midnight: e.g. 23:00–00:00 → 60 min
+        : (24 * 60 - startMinsNorm) + endMinsNorm // crosses midnight: e.g. 23:00–01:00 → 120 min
+    height = (durationMins / 60) * hourHeight
+  }
+
   const colorKey = event.color ?? (event.source === 'task' ? 'green' : 'blue')
   const colors = EVENT_COLORS[colorKey] ?? EVENT_COLORS.blue
 
@@ -46,15 +73,18 @@ export default function EventBlock({
       role="button"
       tabIndex={0}
       aria-label={`${event.title} at ${formatTime12(event.start_time)}`}
-      draggable={!isCompleted}
+      draggable={!isCompleted && !isSplitEnd}
       onClick={() => onClick?.(event)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(event) }}
       onDragStart={(e) => {
-        if (isCompleted) { e.preventDefault(); return }
+        if (isCompleted || isSplitEnd) { e.preventDefault(); return }
         setIsDragging(true)
         const rect = e.currentTarget.getBoundingClientRect()
         const offsetY = e.clientY - rect.top
-        const durationMins = timeToMinutes(event.end_time) - timeToMinutes(event.start_time)
+        const startMins = timeToMinutes(event.start_time.slice(0, 5))
+        const endMins   = timeToMinutes(event.end_time.slice(0, 5))
+        // Handle midnight-crossing duration correctly
+        const durationMins = endMins >= startMins ? endMins - startMins : (24 * 60 - startMins) + endMins
         const offsetMins = Math.round((offsetY / hourHeight) * 60)
         e.dataTransfer.effectAllowed = 'move'
         e.dataTransfer.setData('application/json', JSON.stringify({
@@ -74,7 +104,10 @@ export default function EventBlock({
         colors.text,
         colors.border,
         isCompleted && 'opacity-40 line-through',
-        isDragging ? 'opacity-40 cursor-grabbing' : 'cursor-grab'
+        isSplitEnd ? 'cursor-pointer' : isDragging ? 'opacity-40 cursor-grabbing' : 'cursor-grab',
+        // Dashed edge where the event is cut: bottom for 'start', top for 'end'
+        isSplitStart && 'border-b-2 border-b-dashed border-b-current',
+        isSplitEnd   && 'border-t-2 border-t-dashed border-t-current',
       )}
     >
       {event.is_recurring && (
@@ -83,7 +116,11 @@ export default function EventBlock({
       <p className="font-bold text-xs sm:text-sm leading-tight text-center break-words whitespace-normal w-full">{event.title}</p>
       {height >= 36 && (
         <p className="text-[10px] sm:text-xs opacity-70 mt-0.5 font-medium">
-          {formatTime12(event.start_time)} – {formatTime12(event.end_time)}
+          {isSplitStart
+            ? `${formatTime12(event.start_time)} – 00:00`
+            : isSplitEnd
+            ? `00:00 – ${formatTime12(event.end_time)}`
+            : `${formatTime12(event.start_time)} – ${formatTime12(event.end_time)}`}
         </p>
       )}
     </div>

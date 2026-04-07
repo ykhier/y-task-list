@@ -39,6 +39,11 @@ export interface CalendarEvent {
   color?: string | null
   is_recurring?: boolean
   created_at: string
+  /** Set when a midnight-crossing event is split into two display segments.
+   *  'start' = the portion before midnight (on the original date).
+   *  'end'   = the portion after midnight (shown on the next day's column).
+   *  Both segments keep the original start_time/end_time/date so the edit modal is correct. */
+  splitContinuation?: 'start' | 'end'
 }
 
 export interface WeekDay {

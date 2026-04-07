@@ -234,6 +234,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (user && !isAdmin && pathname.startsWith("/admin")) {
       router.push("/");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, isAdmin, pathname, router, supabase]);
 
   const signOut = async () => {

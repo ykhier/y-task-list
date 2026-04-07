@@ -233,6 +233,61 @@ The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.t
 
 All voice API calls are traced in **LangSmith** (`LANGCHAIN_TRACING_V2=true`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT` in `.env.local`). The route uses `wrapOpenAI` (automatic OpenAI call tracing) and `traceable` (wraps the full parse function with `metadata: { user: <email> }` so each trace shows which user triggered it).
 
+### Rendering and performance standards
+
+Every page transition, tab switch, and re-render must be implemented at production quality — no flicker, no layout thrash, no unnecessary network waterfalls.
+
+#### Tab switching
+
+Tabs are rendered with conditional JSX (`activeTab === 'x' && <Component />`) inside containers that are always mounted (`h-full overflow-hidden`). This means:
+- Components unmount on tab switch and remount on return. Do **not** depend on in-memory state surviving a tab switch — persist anything important to refs, sessionStorage, or server state.
+- Because tasks use `sessionStorage` caching (`weekflow.tasks.<userId>`), returning to the tasks tab feels instant — the cached data is displayed immediately while a background re-fetch runs silently. **Never show a loading spinner on background re-fetches when data is already present.**
+
+#### Stale-while-revalidate pattern (requestIdRef)
+
+All data-fetching hooks (`useTasks`, `useEvents`, `useTutorials`) guard async responses with a `requestIdRef` counter. Increment before each fetch, check the counter after `await` — if it changed, discard the result. This prevents stale responses from overwriting newer data on rapid tab switches or focus events.
+
+```ts
+const requestId = ++requestIdRef.current
+const data = await fetchSomething()
+if (requestId !== requestIdRef.current) return  // stale — discard
+```
+
+Always apply this pattern to any new async fetch inside a hook or component. Never apply state updates from a fetch without checking for staleness first.
+
+#### Optimistic updates
+
+Mutations in `useTutorials` (and similar patterns elsewhere) apply the change to local state **before** the network call returns. The pattern:
+1. Update local state immediately (optimistic)
+2. Fire the async mutation
+3. On error: roll back to previous state and surface an error message
+4. On success: reconcile with the server response (replace the optimistic item with the real one)
+
+Use this pattern for any user-triggered mutation where the success rate is high and the cost of a momentary incorrect state is low.
+
+#### Avoiding unnecessary re-renders
+
+- Hooks that close over stable refs (e.g., `supabase` client) should be in `useEffect` dep arrays — but do **not** add inner functions defined in the component body unless they are wrapped in `useCallback`. Without `useCallback`, adding the function as a dep causes the effect to re-run every render. When the function is stable but ESLint still warns, use `// eslint-disable-next-line react-hooks/exhaustive-deps` with a comment explaining why.
+- Pure computation that derives display data from props/state (e.g., `buildEventsByDay`, `buildPatterns`) must be kept outside the render path or wrapped in `useMemo` if the input arrays are large.
+- Components should receive only the slices of state they render. Pass derived values, not raw store objects, whenever the child doesn't need the full parent state.
+
+#### Background refresh without flicker
+
+Hooks re-fetch on `focus`, `visibilitychange`, `pageshow`, and `online` events. These must always be **background fetches** — they must not reset the loading spinner or clear visible content. The guard is: only call `setLoading(true)` when no data is currently available.
+
+```ts
+const isBackgroundRefresh = tasks.length > 0
+if (!isBackgroundRefresh) setLoading(true)
+```
+
+New hooks should replicate this pattern exactly. A user returning to a tab should never see a blank screen or spinner if they already had data.
+
+#### Layout and scroll
+
+- The root layout (`h-[100dvh] overflow-hidden`) prevents any body scroll. Each tab's content area manages its own scroll with `overflow-y-auto` or `overflow-hidden` and explicit heights.
+- `overflow-x-auto` in RTL context starts scroll at the **right** edge — leftmost items get clipped. Fix with `flex-1` on children or `dir="ltr"` on the scroll container (see RTL gotchas).
+- Pixel-based calendar grid uses `HOUR_HEIGHT = 60` — any element positioned in the grid must use `top = timeToOffset(time)` and `height = timeRangeToHeight(start, end)`. Never hardcode pixel values — import from `calendar-constants.ts`.
+
 ### Styling
 
 Tailwind CSS v3 + shadcn/ui. Path alias `@/` maps to the project root. Component config in [components.json](components.json).
