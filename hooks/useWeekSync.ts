@@ -94,8 +94,7 @@ export function useWeekSync() {
     async (id: string) => {
       const targetTask = tasks.find((task) => task.id === id)
       if (!targetTask) {
-        await deleteTask(id)
-        await deleteEventByTaskId(id)
+        await Promise.all([deleteTask(id), deleteEventByTaskId(id)])
         return
       }
 
@@ -105,13 +104,11 @@ export function useWeekSync() {
           .filter((task) => task.is_recurring && getRecurringSignature(task) === signature)
           .map((task) => task.id)
 
-        await deleteTasksByIds(relatedTaskIds)
-        await deleteEventsByTaskIds(relatedTaskIds)
+        await Promise.all([deleteTasksByIds(relatedTaskIds), deleteEventsByTaskIds(relatedTaskIds)])
         return
       }
 
-      await deleteTask(id)
-      await deleteEventByTaskId(id)
+      await Promise.all([deleteTask(id), deleteEventByTaskId(id)])
     },
     [tasks, deleteTask, deleteTasksByIds, deleteEventByTaskId, deleteEventsByTaskIds]
   )
@@ -180,8 +177,7 @@ export function useWeekSync() {
 
   const handleDeleteEvent = useCallback(
     async (id: string) => {
-      await deleteTutorialBySessionId(id)
-      await deleteEvent(id)
+      await Promise.all([deleteTutorialBySessionId(id), deleteEvent(id)])
     },
     [deleteEvent, deleteTutorialBySessionId]
   )

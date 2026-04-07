@@ -411,9 +411,9 @@ export default function EventModal({
                 variant="outline"
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 disabled={isLoading}
-                onClick={async () => {
-                  await onDelete(editEvent.id);
+                onClick={() => {
                   onClose();
+                  void onDelete(editEvent.id);
                 }}
               >
                 <Trash2 className="h-4 w-4" />

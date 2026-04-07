@@ -82,11 +82,9 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
     onClose()
   }
 
-  const handleDelete = async () => {
-    setSaving(true)
-    await onDelete(tutorial.id)
-    setSaving(false)
+  const handleDelete = () => {
     onClose()
+    void onDelete(tutorial.id)
   }
 
   return (
