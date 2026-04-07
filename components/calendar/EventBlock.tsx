@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { Repeat2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatTime12, timeToOffset, timeRangeToHeight, timeToMinutes } from '@/lib/date'
-import { GRID_START_HOUR } from './calendar-constants'
+import { formatTime12, timeRangeToHeight, timeToMinutes } from '@/lib/date'
+import { HOUR_HEIGHT, GRID_START_HOUR } from './calendar-constants'
 import type { CalendarEvent } from '@/types'
 
 const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -19,18 +19,24 @@ interface EventBlockProps {
   event: CalendarEvent
   isCompleted?: boolean
   hourHeight?: number
+  gridStartHour?: number
   onClick?: (event: CalendarEvent) => void
 }
 
 export default function EventBlock({
   event,
   isCompleted = false,
-  hourHeight = 60,
+  hourHeight = HOUR_HEIGHT,
+  gridStartHour = GRID_START_HOUR,
   onClick,
 }: EventBlockProps) {
   const [isDragging, setIsDragging] = useState(false)
 
-  const top    = timeToOffset(event.start_time, hourHeight) - GRID_START_HOUR * hourHeight
+  // Post-midnight times (e.g. 01:00) are treated as 25:00 so they position
+  // correctly below midnight in the extended grid.
+  const [evH, evM] = event.start_time.split(':').map(Number)
+  const absH = evH < gridStartHour ? evH + 24 : evH
+  const top = (absH + evM / 60) * hourHeight - gridStartHour * hourHeight
   const height = timeRangeToHeight(event.start_time, event.end_time, hourHeight)
   const colorKey = event.color ?? (event.source === 'task' ? 'green' : 'blue')
   const colors = EVENT_COLORS[colorKey] ?? EVENT_COLORS.blue

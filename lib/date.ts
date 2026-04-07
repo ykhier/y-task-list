@@ -60,12 +60,13 @@ export function timeRangeToHeight(
   return Math.max(((endMins - startMins) / 60) * hourHeight, hourHeight * 0.5)
 }
 
-/** Default end time = start + 1 hour */
+/** Default end time = start + 1 hour (wraps past midnight) */
 export function defaultEndTime(startTime: string): string {
   const [h, m] = startTime.split(':').map(Number)
-  const end = new Date()
-  end.setHours(h + 1, m, 0, 0)
-  return format(end, TIME_FORMAT)
+  const totalMins = (h * 60 + m + 60) % (24 * 60)
+  const endH = Math.floor(totalMins / 60)
+  const endM = totalMins % 60
+  return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
 }
 
 /** "09:30" → "09:30" */

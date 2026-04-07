@@ -172,6 +172,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("pageshow", refreshSessionOnResume);
       document.removeEventListener("visibilitychange", refreshSessionOnResume);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   useEffect(() => {

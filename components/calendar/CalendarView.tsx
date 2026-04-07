@@ -124,7 +124,7 @@ export default function CalendarView({
 
   const goToToday = useCallback(() => setCurrentDate(new Date()), [])
   const handleSlotClick = useCallback(
-    (dateStr: string, hour: number) => onAddEvent?.(dateStr, hour),
+    (dateStr: string, hour: number) => onAddEvent?.(dateStr, hour % 24),
     [onAddEvent],
   )
 

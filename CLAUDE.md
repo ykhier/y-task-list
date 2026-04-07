@@ -135,12 +135,18 @@ components/
       navbar-tabs.tsx
     EventModal.tsx              — add/edit lecture dialog (contains DaySelect, TimeRangeFields, RecurringCheckbox sub-components)
     TutorialModal.tsx
+    SettingsModal.tsx           — daily-digest toggle; reads/writes /api/settings/notification
     AnalyticsSummary.tsx
+  admin/
+    AdminUsersClient.tsx        — client-side user management table (toggle admin, delete)
+app/admin/page.tsx              — SSR admin page; redirects non-admins; uses createAdminClient()
   tasks/
     TaskList.tsx                — thin shell; delegates to task-list/ sub-components
     task-list/
       TaskListHeader.tsx
       TaskListDialogs.tsx
+      TaskStats.tsx             — 4-card stats grid (total, done, scheduled time, completion %)
+      task-stats-utils.ts       — getTaskStatsSummary(), formatMinutesLabel()
       task-list-constants.ts
       task-list-utils.ts
     TaskItem.tsx, TaskForm.tsx
@@ -161,6 +167,11 @@ lib/
     page-helpers.ts   — pure helpers: overlaps, hasTimedConflict, getRecurringSuggestion, targetRecurringDate
   supabase/client.ts  — browser Supabase client
   supabase/server.ts  — server Supabase client (SSR)
+  supabase/admin.ts   — createAdminClient() using SUPABASE_SERVICE_ROLE_KEY (server-only)
+  email/
+    mailer.ts         — Gmail SMTP via Nodemailer
+    digest-data.ts    — fetches tomorrow’s tasks/events per user
+    digest-template.ts — builds the RTL Hebrew digest HTML
   date.ts             — date helpers (defaultEndTime, week generation, etc.)
   utils.ts            — cn() tailwind utility
 types/index.ts        — Task, CalendarEvent, Tutorial, WeekDay, TabView, TaskFilter, EventSource

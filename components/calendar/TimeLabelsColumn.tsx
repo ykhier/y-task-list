@@ -1,25 +1,28 @@
 'use client'
 
-import { HOUR_HEIGHT, HOURS, GRID_START_HOUR } from './calendar-constants'
+import { HOUR_HEIGHT, GRID_START_HOUR, buildHours } from './calendar-constants'
 
-const TIME_LABELS = HOURS.map((h) => `${String(h).padStart(2, '0')}:00`)
+interface TimeLabelsColumnProps {
+  gridStartHour?: number
+}
 
-export default function TimeLabelsColumn() {
+export default function TimeLabelsColumn({ gridStartHour = GRID_START_HOUR }: TimeLabelsColumnProps) {
+  const hours = buildHours(gridStartHour)
+
   return (
     <div className="relative border-l border-slate-200">
-      {HOURS.map((h, i) => (
+      {hours.map((h) => (
         <div
           key={h}
-          style={{ top: (h - GRID_START_HOUR) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+          style={{ top: (h - gridStartHour) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
           className="absolute inset-x-0 flex items-center justify-end pr-2 border-b border-slate-200"
         >
           <span className="text-[10px] text-slate-500 font-medium">
-            {TIME_LABELS[i]}
+            {String(h % 24).padStart(2, '0')}:00
           </span>
         </div>
       ))}
-      <div style={{ height: HOURS.length * HOUR_HEIGHT }} />
+      <div style={{ height: hours.length * HOUR_HEIGHT }} />
     </div>
   )
 }
-
