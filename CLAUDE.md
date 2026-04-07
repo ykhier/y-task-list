@@ -154,6 +154,10 @@ app/admin/page.tsx              — SSR admin page; redirects non-admins; uses c
   ui/
     Spinner.tsx       — two variants: `svg` (default, SVG arc spinner) and `ring` (CSS border spinner); accepts `className` for sizing (default `h-4 w-4`)
     VoiceInputButton.tsx
+    CountdownTimer.tsx — imperative ref component (`CountdownTimerHandle.reset(minutes?)`) used on `/verify-otp`; turns red at ≤10 s
+    PasswordInput.tsx  — text input with show/hide toggle; used on login/signup
+    PasswordStrength.tsx — visual password strength bar; used on signup
+    hebrew-select.tsx  — RTL-aware wrappers (`HebrewSelectTrigger`, `HebrewSelectContent`, `HebrewSelectItem`) around shadcn Select; fixes chevron position and text alignment for RTL. Use these instead of the raw shadcn primitives whenever a Select appears in Hebrew UI.
     (+ shadcn/ui primitives: badge, button, dialog, etc.)
 hooks/
   planner/

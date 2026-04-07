@@ -98,4 +98,47 @@ export function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** Generate date options from min(today, anchorDate) up to today+13 days.
+ *  Pass anchorDate when editing so past dates remain selectable. */
+export function generateDateOptions(
+  anchorDate?: string,
+): { value: string; label: string }[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const start = new Date(today)
+  if (anchorDate) {
+    const anchor = new Date(anchorDate + 'T00:00:00')
+    if (anchor < today) start.setTime(anchor.getTime())
+  }
+
+  const options: { value: string; label: string }[] = []
+  const end = new Date(today)
+  end.setDate(today.getDate() + 13)
+
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    options.push({
+      value: toDateStr(cursor),
+      label: cursor.toLocaleDateString('he-IL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+    })
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return options
+}
+
+/** Returns the date string for the next occurrence of dayOfWeek (0=Sun) from today (inclusive). */
+export function nextOccurrenceOfDay(dayOfWeek: number): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = (dayOfWeek - today.getDay() + 7) % 7
+  const target = new Date(today)
+  target.setDate(today.getDate() + diff)
+  return toDateStr(target)
+}
+
 export { isToday }

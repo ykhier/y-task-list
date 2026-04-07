@@ -28,7 +28,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
+    <html
+      lang="he"
+      dir="rtl"
+      suppressHydrationWarning
+      data-scroll-behavior="smooth"
+    >
       <body className={`${jakarta.className} ${jakarta.variable}`}>
         <SupabaseProvider>{children}</SupabaseProvider>
       </body>

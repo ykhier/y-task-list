@@ -19,7 +19,8 @@ import {
   HebrewSelectTrigger,
   HebrewSelectValue,
 } from "@/components/ui/hebrew-select";
-import { defaultEndTime, toDateStr } from "@/lib/date";
+import { defaultEndTime, toDateStr, nextOccurrenceOfDay } from "@/lib/date";
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 import type { ParsedVoiceInput } from "@/hooks/useVoiceInput";
 import type { CalendarEvent } from "@/types";
@@ -32,55 +33,7 @@ const COLOR_OPTIONS = [
   { label: "אדום", value: "red" },
 ];
 
-const DAY_OPTIONS = [
-  { label: "ראשון", value: 0 },
-  { label: "שני", value: 1 },
-  { label: "שלישי", value: 2 },
-  { label: "רביעי", value: 3 },
-  { label: "חמישי", value: 4 },
-  { label: "שישי", value: 5 },
-  { label: "שבת", value: 6 },
-];
-
-function getDateForWeekday(dayIndex: number, anchor: Date): string {
-  const target = new Date(anchor);
-  target.setDate(anchor.getDate() + (dayIndex - anchor.getDay()));
-  return toDateStr(target);
-}
-
-function getDayIndexFromDate(dateStr: string): number {
-  return new Date(dateStr + "T00:00:00").getDay();
-}
-
 // ── Shared sub-components ────────────────────────────────
-
-function DaySelect({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label>{label}</Label>
-      <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-        <HebrewSelectTrigger>
-          <HebrewSelectValue />
-        </HebrewSelectTrigger>
-        <HebrewSelectContent>
-          {DAY_OPTIONS.map((d) => (
-            <HebrewSelectItem key={d.value} value={String(d.value)}>
-              {d.label}
-            </HebrewSelectItem>
-          ))}
-        </HebrewSelectContent>
-      </Select>
-    </div>
-  );
-}
 
 function TimeRangeFields({
   startId,
@@ -181,14 +134,11 @@ export default function EventModal({
 }: EventModalProps) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const defaultStart = initialHour != null ? `${pad(initialHour)}:00` : "09:00";
+  const todayStr = toDateStr(new Date());
 
   const [title, setTitle] = useState(editEvent?.title ?? "");
-  const [dayIndex, setDayIndex] = useState<number>(
-    editEvent
-      ? getDayIndexFromDate(editEvent.date)
-      : initialDate
-        ? getDayIndexFromDate(initialDate)
-        : new Date().getDay(),
+  const [selectedDate, setSelectedDate] = useState<string>(
+    editEvent?.date ?? initialDate ?? todayStr,
   );
   const [startTime, setStartTime] = useState(
     editEvent?.start_time ?? defaultStart,
@@ -202,8 +152,8 @@ export default function EventModal({
   );
 
   const [tutorialEnabled, setTutorialEnabled] = useState(false);
-  const [tutorialDayIndex, setTutorialDayIndex] = useState<number>(
-    new Date().getDay(),
+  const [tutorialDate, setTutorialDate] = useState<string>(
+    initialDate ?? todayStr,
   );
   const [tutorialStart, setTutorialStart] = useState("11:00");
   const [tutorialEnd, setTutorialEnd] = useState("12:00");
@@ -226,22 +176,20 @@ export default function EventModal({
   useEffect(() => {
     if (editEvent) {
       setTitle(editEvent.title);
-      setDayIndex(getDayIndexFromDate(editEvent.date));
+      setSelectedDate(editEvent.date);
       setStartTime(editEvent.start_time);
       setEndTime(editEvent.end_time);
       setColor(editEvent.color ?? "blue");
       setIsRecurring(editEvent.is_recurring ?? false);
     } else {
       const s = initialHour != null ? `${pad(initialHour)}:00` : "09:00";
-      const initDay = initialDate
-        ? getDayIndexFromDate(initialDate)
-        : new Date().getDay();
+      const initDate = initialDate ?? todayStr;
       setTitle("");
-      setDayIndex(initDay);
+      setSelectedDate(initDate);
       setStartTime(s);
       const end = defaultEndTime(s);
       setEndTime(end);
-      setTutorialDayIndex(initDay);
+      setTutorialDate(initDate);
       setTutorialStart(end);
       setTutorialEnd(defaultEndTime(end));
       setIsRecurring(false);
@@ -261,14 +209,14 @@ export default function EventModal({
     }
   };
 
-  const handleDayChange = (idx: number) => {
-    setDayIndex(idx);
-    setTutorialDayIndex(idx);
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+    setTutorialDate(date);
   };
 
   const applyParsed = (data: ParsedVoiceInput) => {
     if (data.title !== null) setTitle(data.title);
-    if (data.dayIndex !== null) handleDayChange(data.dayIndex);
+    if (data.dayIndex !== null) handleDateChange(nextOccurrenceOfDay(data.dayIndex));
     if (data.startTime !== null) handleStartChange(data.startTime);
     if (data.endTime !== null) setEndTime(data.endTime);
     if (data.isRecurring !== null) setIsRecurring(data.isRecurring);
@@ -276,7 +224,7 @@ export default function EventModal({
     if (data.tutorial !== null) {
       setTutorialEnabled(true);
       if (data.tutorial.dayIndex !== null)
-        setTutorialDayIndex(data.tutorial.dayIndex);
+        setTutorialDate(nextOccurrenceOfDay(data.tutorial.dayIndex));
       if (data.tutorial.startTime !== null)
         setTutorialStart(data.tutorial.startTime);
       if (data.tutorial.endTime !== null) setTutorialEnd(data.tutorial.endTime);
@@ -289,15 +237,9 @@ export default function EventModal({
     e.preventDefault();
     if (!title.trim()) return;
 
-    const anchor = editEvent
-      ? new Date(editEvent.date + "T00:00:00")
-      : initialDate
-        ? new Date(initialDate + "T00:00:00")
-        : new Date();
-
     const lectureData: EventData = {
       title: title.trim(),
-      date: getDateForWeekday(dayIndex, anchor),
+      date: selectedDate,
       start_time: startTime,
       end_time: endTime,
       source: "manual",
@@ -310,7 +252,7 @@ export default function EventModal({
       tutorialEnabled && !editEvent
         ? {
             title: `תרגול – ${title.trim()}`,
-            date: getDateForWeekday(tutorialDayIndex, anchor),
+            date: tutorialDate,
             start_time: tutorialStart,
             end_time: tutorialEnd,
             source: "manual",
@@ -352,7 +294,12 @@ export default function EventModal({
           </div>
 
           {/* Day */}
-          <DaySelect label="יום" value={dayIndex} onChange={handleDayChange} />
+          <DatePickerField
+            label="יום"
+            value={selectedDate}
+            onChange={handleDateChange}
+            minDate={editEvent ? undefined : new Date(new Date().setHours(0,0,0,0))}
+          />
 
           {/* Times */}
           <TimeRangeFields
@@ -409,10 +356,10 @@ export default function EventModal({
 
               {tutorialEnabled && (
                 <div className="flex flex-col gap-3">
-                  <DaySelect
+                  <DatePickerField
                     label="יום תרגול"
-                    value={tutorialDayIndex}
-                    onChange={setTutorialDayIndex}
+                    value={tutorialDate}
+                    onChange={setTutorialDate}
                   />
                   <TimeRangeFields
                     startId="tut-start"

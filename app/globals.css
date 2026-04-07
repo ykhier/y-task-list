@@ -13,6 +13,9 @@
     --muted: 248 250 252;
     --muted-foreground: 100 116 139; /* slate-500 */
     --accent: 239 246 255;          /* blue-50 */
+    --accent-foreground: 30 41 59;
+    --popover: 255 255 255;
+    --popover-foreground: 30 41 59;
     --ring: 59 130 246;
   }
 

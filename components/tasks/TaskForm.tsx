@@ -6,39 +6,45 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select } from "@/components/ui/select";
-import {
-  HebrewSelectContent,
-  HebrewSelectItem,
-  HebrewSelectTrigger,
-  HebrewSelectValue,
-} from "@/components/ui/hebrew-select";
-import { toDateStr } from "@/lib/date";
+import { toDateStr, nextOccurrenceOfDay } from "@/lib/date";
+import { DatePickerField } from "@/components/ui/DatePickerField";
 import { VoiceInputButton } from "@/components/ui/VoiceInputButton";
 import type { ParsedVoiceInput } from "@/hooks/useVoiceInput";
 import type { CalendarEvent, Task } from "@/types";
 
-const DAY_OPTIONS = [
-  { label: "ראשון", value: 0 },
-  { label: "שני", value: 1 },
-  { label: "שלישי", value: 2 },
-  { label: "רביעי", value: 3 },
-  { label: "חמישי", value: 4 },
-  { label: "שישי", value: 5 },
-  { label: "שבת", value: 6 },
-];
-
-function getDateForWeekday(dayIndex: number): string {
-  const now = new Date();
-  const diff = dayIndex - now.getDay();
-  const target = new Date(now);
-  target.setDate(now.getDate() + diff);
-  return toDateStr(target);
-}
-
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
+}
+
+function nextDayStr(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  return toDateStr(d);
+}
+
+/** Splits a time range into {date, s, e} segments (e > s always), handling midnight crossing. */
+function toSegments(dateStr: string, startTime: string, endTime: string) {
+  const s = timeToMinutes(startTime);
+  const e = timeToMinutes(endTime);
+  if (e === 0) return [{ date: dateStr, s, e: 24 * 60 }];
+  if (s >= e)
+    return [
+      { date: dateStr, s, e: 24 * 60 },
+      { date: nextDayStr(dateStr), s: 0, e },
+    ];
+  return [{ date: dateStr, s, e }];
+}
+
+function segmentsOverlap(
+  d1: string, t1s: string, t1e: string,
+  d2: string, t2s: string, t2e: string,
+): boolean {
+  const segs1 = toSegments(d1, t1s, t1e);
+  const segs2 = toSegments(d2, t2s, t2e);
+  return segs1.some((a) =>
+    segs2.some((b) => a.date === b.date && a.s < b.e && a.e > b.s),
+  );
 }
 
 function findConflict(
@@ -49,37 +55,25 @@ function findConflict(
   tasks: Task[],
   excludeTaskId?: string,
 ): string | null {
-  const start = timeToMinutes(startTime);
-  const end = timeToMinutes(endTime);
-
   const completedTaskIds = new Set(
     tasks.filter((t) => t.is_completed).map((t) => t.id),
   );
 
   for (const ev of events) {
-    if (ev.date !== date) continue;
     if (
       ev.task_id &&
       (completedTaskIds.has(ev.task_id) || ev.task_id === excludeTaskId)
-    ) {
+    )
       continue;
-    }
-
-    const evStart = timeToMinutes(ev.start_time);
-    const evEnd = timeToMinutes(ev.end_time);
-    if (start < evEnd && end > evStart) {
-      return `חופף עם האירוע "${ev.title}" (${ev.start_time}-${ev.end_time})`;
+    if (segmentsOverlap(date, startTime, endTime, ev.date, ev.start_time, ev.end_time)) {
+      return `חופף עם האירוע "${ev.title}" (${ev.start_time.slice(0, 5)}-${ev.end_time.slice(0, 5)})`;
     }
   }
 
   for (const task of tasks) {
-    if (task.id === excludeTaskId) continue;
-    if (task.is_completed) continue;
-    if (task.date !== date || !task.time || !task.end_time) continue;
-
-    const taskStart = timeToMinutes(task.time);
-    const taskEnd = timeToMinutes(task.end_time);
-    if (start < taskEnd && end > taskStart) {
+    if (task.id === excludeTaskId || task.is_completed) continue;
+    if (!task.time || !task.end_time) continue;
+    if (segmentsOverlap(date, startTime, endTime, task.date, task.time, task.end_time)) {
       return `חופף עם המשימה "${task.title}" (${task.time}-${task.end_time})`;
     }
   }
@@ -110,14 +104,11 @@ export default function TaskForm({
 }: TaskFormProps) {
   const today = toDateStr(new Date());
 
-  const initDay = () => {
-    const dateStr = editTask?.date ?? initialDate ?? today;
-    return new Date(`${dateStr}T00:00:00`).getDay();
-  };
-
   const [title, setTitle] = useState(editTask?.title ?? "");
   const [description, setDescription] = useState(editTask?.description ?? "");
-  const [dayIndex, setDayIndex] = useState<number>(initDay);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    editTask?.date ?? initialDate ?? today,
+  );
   const [time, setTime] = useState(editTask?.time ?? "");
   const [endTime, setEndTime] = useState(editTask?.end_time ?? "");
   const [isRecurring, setIsRecurring] = useState(
@@ -136,10 +127,9 @@ export default function TaskForm({
 
   useEffect(() => {
     if (!editTask) return;
-
     setTitle(editTask.title);
     setDescription(editTask.description ?? "");
-    setDayIndex(new Date(`${editTask.date}T00:00:00`).getDay());
+    setSelectedDate(editTask.date);
     setTime(editTask.time ?? "");
     setEndTime(editTask.end_time ?? "");
     setIsRecurring(editTask.is_recurring ?? false);
@@ -148,7 +138,7 @@ export default function TaskForm({
   const applyParsed = (data: ParsedVoiceInput) => {
     if (data.title !== null) setTitle(data.title);
     if (data.description !== null) setDescription(data.description ?? "");
-    if (data.dayIndex !== null) setDayIndex(data.dayIndex);
+    if (data.dayIndex !== null) setSelectedDate(nextOccurrenceOfDay(data.dayIndex));
     if (data.startTime !== null) {
       setTime(data.startTime);
       setConflict(null);
@@ -168,17 +158,16 @@ export default function TaskForm({
       return;
     }
 
-    if (endTime <= time) {
-      setTimeError("שעת הסיום חייבת להיות אחרי שעת ההתחלה");
+    if (endTime === time) {
+      setTimeError("שעת הסיום לא יכולה להיות זהה לשעת ההתחלה");
       setConflict(null);
       return;
     }
 
     setTimeError(null);
 
-    const date = getDateForWeekday(dayIndex);
     const currentConflict = findConflict(
-      date,
+      selectedDate,
       time,
       endTime,
       events,
@@ -192,7 +181,7 @@ export default function TaskForm({
     onSubmit({
       title: title.trim(),
       description: description.trim() || null,
-      date,
+      date: selectedDate,
       time,
       end_time: endTime,
       is_recurring: isRecurring,
@@ -228,24 +217,11 @@ export default function TaskForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>יום</Label>
-        <Select
-          value={String(dayIndex)}
-          onValueChange={(v) => setDayIndex(Number(v))}
-        >
-          <HebrewSelectTrigger>
-            <HebrewSelectValue />
-          </HebrewSelectTrigger>
-          <HebrewSelectContent>
-            {DAY_OPTIONS.map((day) => (
-              <HebrewSelectItem key={day.value} value={String(day.value)}>
-                {day.label}
-              </HebrewSelectItem>
-            ))}
-          </HebrewSelectContent>
-        </Select>
-      </div>
+      <DatePickerField
+        label="יום"
+        value={selectedDate}
+        onChange={setSelectedDate}
+      />
 
       <div className="flex flex-col gap-1.5">
         <Label>
