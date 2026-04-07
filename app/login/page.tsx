@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,47 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [preparingLogin, setPreparingLogin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const switchAccount = searchParams.get("switch_account") === "1";
+
+  useEffect(() => {
+    if (!switchAccount) return;
+
+    let cancelled = false;
+
+    const prepareLogin = async () => {
+      setPreparingLogin(true);
+      setError(null);
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("otp_verified");
+        sessionStorage.removeItem("otp_token");
+        sessionStorage.removeItem("otp_user_id");
+        sessionStorage.removeItem("otp_initial_send_pending");
+      }
+
+      const supabase = createClient();
+
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } finally {
+        if (!cancelled) {
+          setPreparingLogin(false);
+          router.replace("/login");
+          router.refresh();
+        }
+      }
+    };
+
+    void prepareLogin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, switchAccount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +96,28 @@ export default function LoginPage() {
 
     router.push("/");
   };
+
+  if (preparingLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
+        <div className="relative w-full max-w-md">
+          <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-xl">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 shadow-md shadow-blue-200">
+                <Spinner className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">מכינים התחברות</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  מנתקים את החשבון הנוכחי כדי שתוכל להיכנס עם משתמש אחר
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">

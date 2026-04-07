@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const SWITCH_ACCOUNT_PARAM = 'switch_account'
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -23,24 +25,35 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refreshes the session cookie — must be called on every request
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-  const isAuthPath = pathname === '/login' || pathname === '/signup' || pathname === '/verify-otp'
+  const { pathname, searchParams } = request.nextUrl
+  const isLoginPath = pathname === '/login'
+  const isSignupPath = pathname === '/signup'
+  const isVerifyOtpPath = pathname === '/verify-otp'
+  const isAuthPath = isLoginPath || isSignupPath || isVerifyOtpPath
   const isCronPath = pathname.startsWith('/api/cron/')
+  const isSwitchAccountFlow = searchParams.get(SWITCH_ACCOUNT_PARAM) === '1'
 
-  // Not logged in → redirect to login immediately (server-side, no flash)
   if (!user && !isAuthPath && !isCronPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Already logged in → don't show login/signup pages
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  if (user && isSignupPath) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set(SWITCH_ACCOUNT_PARAM, '1')
+    return NextResponse.redirect(url)
+  }
+
+  if (user && isLoginPath && !isSwitchAccountFlow) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
