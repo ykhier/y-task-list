@@ -96,7 +96,7 @@ Realtime must be enabled in the Supabase dashboard: **Database → Replication �
 
 ### Daily digest cron
 
-`vercel.json` schedules `GET /api/cron/daily-digest` at `0 19 * * *` UTC (= 22:00 Israel time, UTC+3). The route:
+`vercel.json` schedules `GET /api/cron/daily-digest` at `40 18 * * *` UTC (= 21:40 Israel time, UTC+3). Vercel adds ~20 min execution delay, so emails arrive at ~22:00 Israel time. The route:
 - Authenticates via `Authorization: Bearer <CRON_SECRET>` header (Vercel crons send this automatically)
 - Queries `profiles` for users with `digest_enabled = true`
 - Fetches tomorrow's `sessions` and `tasks` for each user, builds an RTL Hebrew email, and sends via Gmail SMTP (Nodemailer, `lib/email/mailer.ts`). RTL layout requires inline `direction:rtl; text-align:right` on `<body>` and all inner cells — Gmail ignores the HTML `dir` attribute alone
