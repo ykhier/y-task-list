@@ -2,7 +2,7 @@
  
 **A modern weekly planner built with Next.js and Supabase**
  
-🔗 **Live Demo:** [https://y-task-list.vercel.app/](https://y-task-list.vercel.app/)
+🔗 **'Website Link:** [https://y-task-list.vercel.app/](https://y-task-list.vercel.app/)
  
 ---
  
