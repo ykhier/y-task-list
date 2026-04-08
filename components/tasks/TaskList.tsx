@@ -65,7 +65,8 @@ export default function TaskList({
       {
         label: "לביצוע",
         value: String(stats.remaining),
-        helper: stats.remaining === 0 ? "הכול תחת שליטה" : "משימות שעוד מחכות לך",
+        helper:
+          stats.remaining === 0 ? "הכול תחת שליטה" : "משימות שעוד מחכות לך",
         tone: "blue" as const,
         icon: "todo" as const,
       },
@@ -77,9 +78,12 @@ export default function TaskList({
         icon: "done" as const,
       },
       {
-        label: "עם שעה",
+        label: "מתוכננות",
         value: String(stats.scheduled),
-        helper: stats.scheduled === 0 ? "אין משימות עם שעה כרגע" : "משימות שכבר הוגדרה להן שעה",
+        helper:
+          stats.scheduled === 0
+            ? "אין משימות עם שעת ביצוע"
+            : "משימות שנקבעה להן שעת ביצוע",
         tone: "amber" as const,
         icon: "time" as const,
       },
