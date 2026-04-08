@@ -158,7 +158,8 @@ app/admin/page.tsx              — SSR admin page; redirects non-admins; uses c
     PasswordInput.tsx  — text input with show/hide toggle; used on login/signup
     PasswordStrength.tsx — visual password strength bar; used on signup
     hebrew-select.tsx  — RTL-aware wrappers (`HebrewSelectTrigger`, `HebrewSelectContent`, `HebrewSelectItem`) around shadcn Select; fixes chevron position and text alignment for RTL. Use these instead of the raw shadcn primitives whenever a Select appears in Hebrew UI.
-    (+ shadcn/ui primitives: badge, button, dialog, etc.)
+    DatePickerField.tsx — RTL-aware date picker (shadcn Calendar + Popover, Hebrew locale via `date-fns/locale/he`). Accepts/returns `YYYY-MM-DD` strings via `fromDateStr`/`toDateStr` from `lib/date.ts`. On mobile renders full-width to avoid RTL clipping. Used in TaskForm and EventModal.
+    (+ shadcn/ui primitives: badge, button, calendar, dialog, popover, etc.)
 hooks/
   planner/
     usePlannerPage.ts — page-level hook: modal state, conflict detection, calendar/event/tutorial actions
@@ -221,9 +222,9 @@ The app uses `viewport-fit=cover` (set in the `viewport` export in `app/layout.t
 - Events linked to **the task being edited** are skipped (`ev.task_id === excludeTaskId`) — prevents a task from conflicting with its own linked calendar event
 - Completed tasks themselves are skipped in the tasks loop
 
-### EventModal date anchor
+### EventModal date picker
 
-`EventModal` uses a day-of-week selector (ראשון–שבת), not a date picker. On submit, `getDateForWeekday(dayIndex, anchor)` converts the selected day to an actual date. The `anchor` is derived from `initialDate` (when adding) or `editEvent.date` (when editing) — **not** from `new Date()`/today. This ensures that adding or editing a lecture while viewing a different week saves to the correct week, not the current one.
+`EventModal` uses `DatePickerField` — a real date picker (not a day-of-week selector). The initial date defaults to `initialDate` (when adding) or `editEvent.date` (when editing). Voice input can still return a `dayIndex`, which is converted to the next occurrence of that weekday via `nextOccurrenceOfDay(dayIndex)` before populating the picker.
 
 ### Voice input
 

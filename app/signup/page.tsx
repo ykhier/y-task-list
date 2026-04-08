@@ -22,6 +22,8 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
+  const passwordStrong =
+    password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
   const passwordMatch =
     password && confirmPassword && password === confirmPassword;
 
@@ -29,15 +31,15 @@ export default function SignupPage() {
     if (!success) return;
 
     const timeoutId = window.setTimeout(() => {
-      router.replace("/login");
-    }, 1200);
+      router.replace("/");
+    }, 2000);
 
     return () => window.clearTimeout(timeoutId);
   }, [router, success]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordMatch) return;
+    if (!passwordMatch || !passwordStrong) return;
 
     setLoading(true);
     setError(null);
@@ -64,7 +66,7 @@ export default function SignupPage() {
       return;
     }
 
-    await supabase.auth.signOut({ scope: "local" });
+    await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     setSuccess(true);
   };
@@ -77,17 +79,12 @@ export default function SignupPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 shadow-md shadow-green-200">
               <Check className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-slate-800">נרשמת בהצלחה!</h1>
+            <h1 className="text-xl font-bold text-slate-800">תודה רבה שנרשמת!</h1>
             <p className="text-sm text-slate-500">
               החשבון נוצר בהצלחה עבור <strong>{email}</strong>. מעבירים אותך
-              להתחברות.
+              למערכת.
             </p>
-            <Button
-              className="mt-2 h-10 w-full text-sm font-semibold"
-              onClick={() => router.replace("/login")}
-            >
-              עבור להתחברות
-            </Button>
+            <Spinner className="h-6 w-6 mt-2" />
           </div>
         </div>
       </div>
@@ -198,7 +195,7 @@ export default function SignupPage() {
             <Button
               type="submit"
               className="mt-1 h-10 w-full text-sm font-semibold"
-              disabled={loading || (!!confirmPassword && !passwordMatch)}
+              disabled={loading || !passwordStrong || (!!confirmPassword && !passwordMatch)}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
