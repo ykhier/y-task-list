@@ -117,3 +117,111 @@ create policy "tutorials: own rows"
   on public.tutorials for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ============================================================
+-- Materials: Study Material Upload + pgvector RAG
+-- Run AFTER the main schema above
+-- ============================================================
+
+-- Enable pgvector extension
+create extension if not exists vector;
+
+-- TUTORIAL_MATERIALS (file metadata per tutorial)
+create table if not exists public.tutorial_materials (
+  id               uuid primary key default uuid_generate_v4(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  tutorial_id      uuid not null references public.tutorials(id) on delete cascade,
+  file_name        text not null,
+  storage_path     text not null,
+  file_size_bytes  bigint,
+  mime_type        text not null default 'application/pdf',
+  embedding_status text not null default 'pending'
+                   check (embedding_status in ('pending', 'processing', 'done', 'error')),
+  embedding_error  text,
+  created_at       timestamptz not null default now()
+);
+
+alter table public.tutorial_materials enable row level security;
+
+create policy "tutorial_materials: own rows"
+  on public.tutorial_materials for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index if not exists tutorial_materials_tutorial
+  on public.tutorial_materials(tutorial_id);
+
+create index if not exists tutorial_materials_user_status
+  on public.tutorial_materials(user_id, embedding_status);
+
+-- MATERIAL_CHUNKS (pgvector embeddings per chunk)
+create table if not exists public.material_chunks (
+  id           uuid primary key default uuid_generate_v4(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  material_id  uuid not null references public.tutorial_materials(id) on delete cascade,
+  tutorial_id  uuid not null references public.tutorials(id) on delete cascade,
+  content      text not null,
+  metadata     jsonb default '{}'::jsonb,
+  embedding    vector(1536),
+  chunk_index  int not null,
+  created_at   timestamptz not null default now()
+);
+
+alter table public.material_chunks enable row level security;
+
+create policy "material_chunks: own rows"
+  on public.material_chunks for all
+  using  (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index if not exists material_chunks_tutorial
+  on public.material_chunks(tutorial_id);
+
+create index if not exists material_chunks_embedding_hnsw
+  on public.material_chunks
+  using hnsw (embedding vector_cosine_ops)
+  with (m = 16, ef_construction = 64);
+
+-- ── match_material_chunks: pgvector similarity search (required by RAG summarizer)
+-- Run this AFTER the material_chunks table is created above.
+create or replace function public.match_material_chunks(
+  query_embedding vector(1536),
+  match_count     int     default 20,
+  filter          jsonb   default '{}'
+)
+returns table (
+  id         uuid,
+  content    text,
+  metadata   jsonb,
+  similarity float
+)
+language plpgsql
+security invoker        -- runs as the caller; service-role key bypasses RLS
+as $$
+begin
+  return query
+  select
+    mc.id,
+    mc.content,
+    mc.metadata,
+    1 - (mc.embedding <=> query_embedding) as similarity
+  from public.material_chunks mc
+  where
+    case when filter = '{}'::jsonb then true
+         else mc.metadata @> filter
+    end
+  order by mc.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+
+-- ── Supabase Storage RLS (run after creating the 'materials' bucket in dashboard)
+-- create policy "materials: upload own folder"
+--   on storage.objects for insert to authenticated
+--   with check (bucket_id = 'materials' and (storage.foldername(name))[1] = auth.uid()::text);
+-- create policy "materials: read own folder"
+--   on storage.objects for select to authenticated
+--   using (bucket_id = 'materials' and (storage.foldername(name))[1] = auth.uid()::text);
+-- create policy "materials: delete own folder"
+--   on storage.objects for delete to authenticated
+--   using (bucket_id = 'materials' and (storage.foldername(name))[1] = auth.uid()::text);

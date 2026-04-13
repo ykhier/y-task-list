@@ -1,0 +1,21 @@
+import { ACCEPTED_MIME_TYPES, MAX_FILE_BYTES } from './materials-constants'
+
+export function validateFile(file: File): string | null {
+  if (file.size > MAX_FILE_BYTES) {
+    return `הקובץ גדול מדי. הגודל המרבי הוא ${formatFileSize(MAX_FILE_BYTES)}.`
+  }
+  if (!ACCEPTED_MIME_TYPES.includes(file.type as (typeof ACCEPTED_MIME_TYPES)[number])) {
+    return 'סוג קובץ לא נתמך. אנא העלה קובץ PDF, Word או טקסט.'
+  }
+  return null
+}
+
+export function buildStoragePath(userId: string, tutorialId: string, materialId: string): string {
+  return `${userId}/${tutorialId}/${materialId}.pdf`
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1_048_576) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / 1_048_576).toFixed(1)} MB`
+}

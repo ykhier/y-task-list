@@ -8,6 +8,7 @@ import TutorialModal from '@/components/layout/TutorialModal'
 import CalendarView from '@/components/calendar/CalendarView'
 import TaskList from '@/components/tasks/TaskList'
 import RecurringView from '@/components/recurring/RecurringView'
+import MaterialsView from '@/components/materials/MaterialsView'
 import { usePlannerPage } from '@/hooks/planner/usePlannerPage'
 
 export default function AppPage() {
@@ -70,6 +71,15 @@ export default function AppPage() {
               tutorials={tutorials}
               onEditTask={recurringActions.updateTask}
               onEditEvent={openEditEvent}
+            />
+          </div>
+        )}
+
+        {activeTab === 'materials' && (
+          <div className="h-full overflow-hidden">
+            <MaterialsView
+              tutorials={tutorials}
+              events={events.filter((e) => e.source === 'manual')}
             />
           </div>
         )}

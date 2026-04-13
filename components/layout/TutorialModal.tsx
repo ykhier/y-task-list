@@ -31,6 +31,14 @@ const DAY_OPTIONS = [
   { label: 'שבת',   value: 6 },
 ]
 
+const COLOR_OPTIONS = [
+  { label: 'כחול',  value: 'blue',   dot: 'bg-blue-400' },
+  { label: 'ירוק',  value: 'green',  dot: 'bg-green-400' },
+  { label: 'כתום',  value: 'orange', dot: 'bg-orange-400' },
+  { label: 'סגול',  value: 'purple', dot: 'bg-purple-400' },
+  { label: 'אדום',  value: 'red',    dot: 'bg-red-400' },
+]
+
 function getDateForWeekday(dayIndex: number): string {
   const now = new Date()
   const diff = dayIndex - now.getDay()
@@ -47,16 +55,17 @@ interface TutorialModalProps {
   open: boolean
   tutorial: CalendarEvent | null
   onClose: () => void
-  onSave: (id: string, data: { date: string; start_time: string; end_time: string; is_recurring: boolean }) => Promise<void>
+  onSave: (id: string, data: { date: string; start_time: string; end_time: string; is_recurring: boolean; color: string }) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
 export default function TutorialModal({ open, tutorial, onClose, onSave, onDelete }: TutorialModalProps) {
-  const [dayIndex, setDayIndex]     = useState(0)
-  const [startTime, setStartTime]   = useState('10:00')
-  const [endTime, setEndTime]       = useState('11:00')
+  const [dayIndex, setDayIndex]       = useState(0)
+  const [startTime, setStartTime]     = useState('10:00')
+  const [endTime, setEndTime]         = useState('11:00')
   const [isRecurring, setIsRecurring] = useState(false)
-  const [saving, setSaving]         = useState(false)
+  const [color, setColor]             = useState('blue')
+  const [saving, setSaving]           = useState(false)
 
   useEffect(() => {
     if (tutorial) {
@@ -64,6 +73,7 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
       setStartTime(tutorial.start_time)
       setEndTime(tutorial.end_time)
       setIsRecurring(tutorial.is_recurring ?? false)
+      setColor(tutorial.color ?? 'blue')
     }
   }, [tutorial, open])
 
@@ -77,6 +87,7 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
       start_time:   startTime,
       end_time:     endTime,
       is_recurring: isRecurring,
+      color,
     })
     setSaving(false)
     onClose()
@@ -120,6 +131,26 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
               <Input id="tut-end" type="time" value={endTime}
                 onChange={(e) => setEndTime(e.target.value)} required />
             </div>
+          </div>
+
+          {/* Color */}
+          <div className="flex flex-col gap-1.5">
+            <Label>צבע</Label>
+            <Select value={color} onValueChange={setColor}>
+              <HebrewSelectTrigger>
+                <HebrewSelectValue />
+              </HebrewSelectTrigger>
+              <HebrewSelectContent>
+                {COLOR_OPTIONS.map((c) => (
+                  <HebrewSelectItem key={c.value} value={c.value}>
+                    <span className="flex items-center gap-2">
+                      <span className={`h-3 w-3 rounded-full ${c.dot}`} />
+                      {c.label}
+                    </span>
+                  </HebrewSelectItem>
+                ))}
+              </HebrewSelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2">

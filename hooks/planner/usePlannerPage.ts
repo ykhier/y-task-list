@@ -346,7 +346,7 @@ export function usePlannerPage() {
       onClose: () => setTutorialModalOpen(false),
       onSave: async (
         id: string,
-        data: { date: string; start_time: string; end_time: string; is_recurring: boolean },
+        data: { date: string; start_time: string; end_time: string; is_recurring: boolean; color: string },
       ) => {
         await updateTutorial(id, data)
       },

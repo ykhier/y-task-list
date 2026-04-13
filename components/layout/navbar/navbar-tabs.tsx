@@ -1,5 +1,5 @@
 import type { ElementType } from 'react'
-import { CalendarDays, ListTodo, Repeat2 } from 'lucide-react'
+import { BookOpen, CalendarDays, ListTodo, Repeat2 } from 'lucide-react'
 import type { TabView } from '@/types'
 
 export interface NavbarTabConfig {
@@ -43,5 +43,15 @@ export const NAVBAR_TABS: NavbarTabConfig[] = [
     activeShadow: 'shadow-violet-200',
     iconBg: 'bg-violet-50',
     iconColor: 'text-violet-500',
+  },
+  {
+    label: 'חומרי לימוד',
+    sublabel: 'קבצים וסיכומים לתרגולים',
+    value: 'materials',
+    Icon: BookOpen,
+    activeGradient: 'from-emerald-500 to-emerald-600',
+    activeShadow: 'shadow-emerald-200',
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-500',
   },
 ]

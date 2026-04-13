@@ -170,6 +170,81 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorial_materials: {
+        Row: {
+          id: string
+          user_id: string
+          tutorial_id: string
+          file_name: string
+          storage_path: string
+          file_size_bytes: number | null
+          mime_type: string
+          embedding_status: 'pending' | 'processing' | 'done' | 'error'
+          embedding_error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tutorial_id: string
+          file_name: string
+          storage_path: string
+          file_size_bytes?: number | null
+          mime_type?: string
+          embedding_status?: 'pending' | 'processing' | 'done' | 'error'
+          embedding_error?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tutorial_id?: string
+          file_name?: string
+          storage_path?: string
+          file_size_bytes?: number | null
+          mime_type?: string
+          embedding_status?: 'pending' | 'processing' | 'done' | 'error'
+          embedding_error?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      material_chunks: {
+        Row: {
+          id: string
+          user_id: string
+          material_id: string
+          tutorial_id: string
+          content: string
+          metadata: Record<string, unknown>
+          embedding: string | null
+          chunk_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          material_id: string
+          tutorial_id: string
+          content: string
+          metadata?: Record<string, unknown>
+          embedding?: string | null
+          chunk_index: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          material_id?: string
+          tutorial_id?: string
+          content?: string
+          metadata?: Record<string, unknown>
+          embedding?: string | null
+          chunk_index?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

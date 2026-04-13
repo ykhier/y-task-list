@@ -54,6 +54,32 @@ export interface WeekDay {
   isToday: boolean
 }
 
-export type TabView = 'calendar' | 'tasks' | 'recurring'
+export type TabView = 'calendar' | 'tasks' | 'recurring' | 'materials'
 
 export type TaskFilter = 'all' | 'today' | 'week' | 'completed' | 'active'
+
+export type EmbeddingStatus = 'pending' | 'processing' | 'done' | 'error'
+
+export interface TutorialMaterial {
+  id: string
+  user_id: string
+  tutorial_id: string
+  file_name: string
+  storage_path: string
+  file_size_bytes: number | null
+  mime_type: string
+  embedding_status: EmbeddingStatus
+  embedding_error: string | null
+  created_at: string
+}
+
+export interface ResearchResult {
+  title: string
+  url: string
+  summary: string
+}
+
+export interface AgentStep {
+  tool: string
+  input: string
+}
