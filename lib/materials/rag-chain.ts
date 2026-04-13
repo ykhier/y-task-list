@@ -51,7 +51,7 @@ export function buildSummarizeChain(
   return RunnableSequence.from([
     RunnablePassthrough.assign({
       context: async () => {
-        const docs = await retriever.getRelevantDocuments(tutorialTitle)
+        const docs = await retriever.invoke(tutorialTitle)
         return formatDocs(docs)
       },
       title: () => tutorialTitle,
