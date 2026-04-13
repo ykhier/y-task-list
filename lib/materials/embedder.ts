@@ -76,7 +76,7 @@ export async function runEmbeddingPipeline(
 
   if (mime === 'application/pdf') {
     const { PDFLoader } = await import('@langchain/community/document_loaders/fs/pdf')
-    docs = await new PDFLoader(new Blob([fileBuffer], { type: 'application/pdf' })).load()
+    docs = await new PDFLoader(new Blob([new Uint8Array(fileBuffer)], { type: 'application/pdf' })).load()
   } else if (
     mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     mime === 'application/msword'
