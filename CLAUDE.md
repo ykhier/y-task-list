@@ -178,6 +178,7 @@ hooks/
   useTasks.ts         — CRUD + realtime for tasks
   useEvents.ts        — CRUD + realtime for events
   useTutorials.ts     — CRUD + realtime for tutorials; all mutations are optimistic
+  useVoiceInput.ts    — manages MediaRecorder, POSTs webm blob to /api/voice-parse, calls onParsed(ParsedVoiceInput)
   useMaterials.ts     — file list CRUD + 3-second polling while embedding_status=’processing’
   useSummarize.ts     — SSE consumer for /api/materials/summarize; accumulates chunk events
   useResearchAgent.ts — SSE consumer for /api/materials/research; fills steps[] + results[]
@@ -200,6 +201,7 @@ lib/
   date.ts             — date helpers (defaultEndTime, week generation, etc.)
   utils.ts            — cn() tailwind utility
 types/index.ts        — Task, CalendarEvent, Tutorial, WeekDay, TabView, TaskFilter, EventSource, TutorialMaterial, EmbeddingStatus, ResearchResult, AgentStep
+types/database.types.ts — generated Supabase DB types; regenerate with `npx supabase gen types typescript --project-id <id>` after schema changes
 ```
 
 ### Shared calendar primitives
@@ -268,6 +270,8 @@ The **materials** tab lets users attach files to tutorials and get AI summaries 
 
 **Storage bucket:** `materials` (private). Path convention: `materials/{user_id}/{tutorial_id}/{material_id}.pdf`.
 
+> **Known issue:** The `MaterialResearchPanel` conclusion/summary section (`סיכום`) at the end of a research run is not yet rendering correctly — the final aggregated output from the ReAct agent is dropped. The per-step streaming and individual chunk events work; only the final conclusion display is broken.
+
 **Upload flow** (`app/api/materials/upload/route.ts`):
 1. Validate file → insert `tutorial_materials` row with `status='pending'`
 2. Upload buffer to Storage
@@ -275,6 +279,8 @@ The **materials** tab lets users attach files to tutorials and get AI summaries 
 4. Background: `runEmbeddingPipeline()` in `lib/materials/embedder.ts` → PDFLoader / DOCX parser → `RecursiveCharacterTextSplitter` → batch-insert vectors into `material_chunks` → update status to `done` or `error`
 
 **Polling:** `useMaterials.ts` polls `GET /api/materials?tutorialId=` every 3 seconds while any material has `status='processing'`, then stops automatically.
+
+**Manual re-embed endpoint:** `POST /api/materials/embed` accepts `{ materialId }` and re-runs `runEmbeddingPipeline` for an existing material. Used to retry failed embeddings without re-uploading the file. Requires the file to already exist in Storage.
 
 **AI features:**
 - **Summarize** (`app/api/materials/summarize/route.ts` + `hooks/useSummarize.ts`) — RAG chain via `lib/materials/rag-chain.ts`: retrieves top-20 chunks filtered by `tutorialId`, streams structured Hebrew summary (מבוא / נושאים מרכזיים / הגדרות חשובות / סיכום).

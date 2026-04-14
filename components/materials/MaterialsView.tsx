@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BookOpen, Clock } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import MaterialsPanel from '@/components/materials/MaterialsPanel'
 import { parseTutorialTitle } from '@/components/materials/materials/materials-panel-utils'
@@ -12,16 +12,32 @@ interface MaterialsViewProps {
   events: CalendarEvent[]
 }
 
+interface CourseGroup {
+  courseName: string
+  /** One representative item per unique session type (הרצאה, תרגול, etc.) */
+  sessionTypes: { type: string; item: CalendarEvent }[]
+}
 
-/** Group items by course name, preserving first-occurrence order */
-function groupByCourse(items: CalendarEvent[]): { courseName: string; items: CalendarEvent[] }[] {
-  const map = new Map<string, CalendarEvent[]>()
+/**
+ * Groups items by course name, then deduplicates within each course by session type.
+ * A lecture that repeats weekly appears only once.
+ */
+function groupByCourse(items: CalendarEvent[]): CourseGroup[] {
+  const courseMap = new Map<string, Map<string, CalendarEvent>>()
+
   for (const item of items) {
-    const { courseName } = parseTutorialTitle(item.title)
-    if (!map.has(courseName)) map.set(courseName, [])
-    map.get(courseName)!.push(item)
+    const { courseName, type } = parseTutorialTitle(item.title)
+    const typeKey = type || 'הרצאה'
+
+    if (!courseMap.has(courseName)) courseMap.set(courseName, new Map())
+    const typeMap = courseMap.get(courseName)!
+    if (!typeMap.has(typeKey)) typeMap.set(typeKey, item)
   }
-  return Array.from(map.entries()).map(([courseName, items]) => ({ courseName, items }))
+
+  return Array.from(courseMap.entries()).map(([courseName, typeMap]) => ({
+    courseName,
+    sessionTypes: Array.from(typeMap.entries()).map(([type, item]) => ({ type, item })),
+  }))
 }
 
 export default function MaterialsView({ tutorials, events }: MaterialsViewProps) {
@@ -46,46 +62,30 @@ export default function MaterialsView({ tutorials, events }: MaterialsViewProps)
       <div className="h-full overflow-y-auto px-4 py-5" dir="rtl">
         <h2 className="mb-4 text-base font-semibold text-slate-700">קורסים</h2>
         <div className="flex flex-col gap-4">
-          {courses.map(({ courseName, items }) => (
+          {courses.map(({ courseName, sessionTypes }) => (
             <div key={courseName} className="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden">
               {/* Course header */}
               <div className="border-b border-slate-100 bg-slate-50 px-4 py-2">
-                <span className="text-sm font-semibold text-slate-700">קורס {courseName}</span>
+                <span className="text-sm font-semibold text-slate-700">{courseName}</span>
               </div>
 
-              {/* Items within course */}
+              {/* One row per unique session type */}
               <div className="divide-y divide-slate-50">
-                {items.map((item) => {
-                  const { type } = parseTutorialTitle(item.title)
-                  const isTutorial = item.source === 'tutorial'
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between px-4 py-2.5"
+                {sessionTypes.map(({ type, item }) => (
+                  <div key={type} className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-slate-600">{type}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setSelected(item)}
                     >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-slate-600">
-                          {type || (isTutorial ? 'הרצאה' : 'הרצאה')}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
-                          <Clock className="h-3 w-3" />
-                          {item.date}&nbsp;|&nbsp;{item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}
-                        </span>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 text-xs"
-                        onClick={() => setSelected(item)}
-                      >
-                        <BookOpen className="h-3.5 w-3.5" />
-                        חומרי לימוד
-                      </Button>
-                    </div>
-                  )
-                })}
+                      <BookOpen className="h-3.5 w-3.5" />
+                      חומרי לימוד
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
