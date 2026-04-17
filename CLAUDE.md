@@ -191,6 +191,7 @@ lib/
     research-agent.ts   — streamResearchAgent (LangGraph ReAct + Tavily; yields step/chunk/done events)
     materials-constants.ts — MAX_FILE_BYTES, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL
     materials-utils.ts  — validateFile, buildStoragePath, formatFileSize
+    summary-document.ts — `renderSummaryBodyHtml` (Markdown→HTML for in-panel display) + `buildSummaryDocumentHtml` (full RTL print document for PDF download)
   supabase/client.ts  — browser Supabase client
   supabase/server.ts  — server Supabase client (SSR)
   supabase/admin.ts   — createAdminClient() using SUPABASE_SERVICE_ROLE_KEY (server-only)
@@ -283,7 +284,7 @@ The **materials** tab lets users attach files to tutorials and get AI summaries 
 **Manual re-embed endpoint:** `POST /api/materials/embed` accepts `{ materialId }` and re-runs `runEmbeddingPipeline` for an existing material. Used to retry failed embeddings without re-uploading the file. Requires the file to already exist in Storage.
 
 **AI features:**
-- **Summarize** (`app/api/materials/summarize/route.ts` + `hooks/useSummarize.ts`) — RAG chain via `lib/materials/rag-chain.ts`: retrieves top-20 chunks filtered by `tutorialId`, streams structured Hebrew summary (מבוא / נושאים מרכזיים / הגדרות חשובות / סיכום).
+- **Summarize** (`app/api/materials/summarize/route.ts` + `hooks/useSummarize.ts`) — Full-context chain via `lib/materials/rag-chain.ts`: fetches **all** `material_chunks` for the `tutorialId` (ordered by `material_id`, `chunk_index`), formats them with `formatFullContext`, and streams a rich 9-section Hebrew study document. Uses `createAdminClient()` to bypass RLS when reading chunks. Output renders in-panel via `renderSummaryBodyHtml` from `lib/materials/summary-document.ts`, and can be downloaded as a print-formatted PDF (hidden iframe + `window.print()`).
 - **Research agent** (`app/api/materials/research/route.ts` + `hooks/useResearchAgent.ts`) — LangGraph ReAct agent via `lib/materials/research-agent.ts` using `TavilySearchResults`. Requires `TAVILY_API_KEY`. Streams `{ type: 'step' }` (tool use) and `{ type: 'chunk' }` (answer text) events. Output includes 2 Hebrew + 2 English YouTube videos, academic paper links (direct to paper, not author profile), and articles categorized by content language.
 - Both SSE routes fall back to the `sessions` table if the `tutorialId` is not found in `tutorials` — so research/summarize works for regular calendar events too.
 

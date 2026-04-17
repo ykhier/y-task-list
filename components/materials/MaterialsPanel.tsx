@@ -93,7 +93,7 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
 
           {/* Summary */}
           <section>
-            <MaterialSummaryPanel tutorialId={tutorialId} hasMaterials={hasDoneMaterials} />
+            <MaterialSummaryPanel tutorialId={tutorialId} tutorialTitle={tutorialTitle} hasMaterials={hasDoneMaterials} />
           </section>
 
           {/* Divider */}

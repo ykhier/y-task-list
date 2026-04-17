@@ -2,10 +2,9 @@ import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildVectorStore } from '@/lib/materials/embedder'
 import { buildSummarizeChain } from '@/lib/materials/rag-chain'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 function sseStream(
   generator: () => AsyncGenerator<string>,
@@ -26,6 +25,7 @@ function sseStream(
       }
     },
   })
+
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -33,6 +33,29 @@ function sseStream(
       Connection: 'keep-alive',
     },
   })
+}
+
+function formatFullContext(
+  chunks: Array<{
+    content: string
+    metadata: Record<string, unknown> | null
+    material_id: string
+    chunk_index: number
+  }>,
+): string {
+  return chunks.map((chunk, index) => {
+    const fileName = typeof chunk.metadata?.fileName === 'string'
+      ? chunk.metadata.fileName
+      : `קובץ ${chunk.material_id}`
+
+    return [
+      `### מקור ${index + 1}`,
+      `קובץ: ${fileName}`,
+      `מזהה חומר: ${chunk.material_id}`,
+      `אינדקס מקטע: ${chunk.chunk_index}`,
+      chunk.content,
+    ].join('\n')
+  }).join('\n\n')
 }
 
 export async function POST(req: NextRequest) {
@@ -43,6 +66,7 @@ export async function POST(req: NextRequest) {
       cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
     },
   })
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
@@ -53,7 +77,6 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'tutorialId required' }), { status: 400 })
   }
 
-  // Check ownership: tutorials table first, then sessions (regular calendar events)
   const { data: tutorialRow } = await supabase
     .from('tutorials')
     .select('id, title')
@@ -74,19 +97,37 @@ export async function POST(req: NextRequest) {
   }
 
   const adminClient = createAdminClient()
-  const vectorStore = buildVectorStore(adminClient)
-  const chain = buildSummarizeChain(vectorStore, item.title, tutorialId)
+  const { data: chunks, error: chunksError } = await adminClient
+    .from('material_chunks')
+    .select('content, metadata, material_id, chunk_index')
+    .eq('tutorial_id', tutorialId)
+    .order('material_id', { ascending: true })
+    .order('chunk_index', { ascending: true })
+
+  if (chunksError) {
+    return new Response(JSON.stringify({ error: chunksError.message }), { status: 500 })
+  }
+
+  if (!chunks || chunks.length === 0) {
+    return new Response(JSON.stringify({ error: 'No material chunks found' }), { status: 400 })
+  }
+
+  const context = formatFullContext(chunks)
+  const chain = buildSummarizeChain()
 
   return sseStream(async function* () {
     const streamResult = await chain.stream(
-      { title: item.title },
+      { title: item.title, context },
       {
         metadata: { user: user.email ?? user.id, tutorialId, title: item.title },
-        runName: 'summarize-materials',
+        runName: 'summarize-materials-full-context',
       },
     )
+
     for await (const chunk of streamResult) {
-      if (typeof chunk === 'string' && chunk) yield chunk
+      if (typeof chunk === 'string' && chunk) {
+        yield chunk
+      }
     }
   })
 }
