@@ -9,7 +9,25 @@ function escapeHtml(value: string): string {
 
 function renderInline(text: string): string {
   const escaped = escapeHtml(text)
-  return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+}
+
+function isOrderedListLine(line: string): boolean {
+  return /^\d+\.\s/.test(line.trim())
+}
+
+function isBlockquoteLine(line: string): boolean {
+  return line.trim().startsWith('> ')
+}
+
+function isHorizontalRule(line: string): boolean {
+  return /^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())
+}
+
+function isBoldLabel(line: string): boolean {
+  return /^\*\*[^*]+:\*\*/.test(line.trim())
 }
 
 function isTableLine(line: string): boolean {
@@ -85,6 +103,22 @@ export function renderSummaryBodyHtml(summary: string): string {
       continue
     }
 
+    if (isHorizontalRule(trimmed)) {
+      blocks.push('<hr />')
+      index++
+      continue
+    }
+
+    if (isBlockquoteLine(line)) {
+      const bqLines: string[] = []
+      while (index < lines.length && isBlockquoteLine(lines[index])) {
+        bqLines.push(lines[index].trim().slice(2))
+        index++
+      }
+      blocks.push(`<blockquote>${bqLines.map((l) => renderInline(l)).join('<br />')}</blockquote>`)
+      continue
+    }
+
     if (trimmed.startsWith('- ')) {
       const items: string[] = []
       while (index < lines.length && lines[index].trim().startsWith('- ')) {
@@ -95,10 +129,32 @@ export function renderSummaryBodyHtml(summary: string): string {
       continue
     }
 
+    if (isOrderedListLine(trimmed)) {
+      const items: string[] = []
+      while (index < lines.length && isOrderedListLine(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^\d+\.\s/, ''))
+        index++
+      }
+      blocks.push(`<ol>${items.map((item) => `<li>${renderInline(item)}</li>`).join('')}</ol>`)
+      continue
+    }
+
     const paragraph: string[] = []
     while (index < lines.length) {
       const current = lines[index].trim()
-      if (!current || current.startsWith('#') || current.startsWith('- ') || isTableLine(current)) {
+      if (
+        !current ||
+        current.startsWith('#') ||
+        current.startsWith('- ') ||
+        current.startsWith('> ') ||
+        isOrderedListLine(current) ||
+        isTableLine(current) ||
+        isHorizontalRule(current)
+      ) {
+        break
+      }
+      // each bold-label line (e.g. **שאלה:** / **תשובה:**) starts its own paragraph
+      if (paragraph.length > 0 && isBoldLabel(current)) {
         break
       }
       paragraph.push(lines[index])
@@ -106,7 +162,10 @@ export function renderSummaryBodyHtml(summary: string): string {
     }
 
     if (paragraph.length > 0) {
-      blocks.push(`<p>${renderInline(paragraph.join(' '))}</p>`)
+      const html = renderInline(paragraph.join(' '))
+      // bold-label paragraphs get a distinct class for spacing
+      const cls = isBoldLabel(paragraph[0].trim()) ? ' class="bold-label"' : ''
+      blocks.push(`<p${cls}>${html}</p>`)
       continue
     }
 
@@ -218,17 +277,47 @@ export function buildSummaryDocumentHtml(title: string, summary: string): string
         margin: 0 0 10px;
         color: #1f2937;
       }
-      ul {
+      ul, ol {
         margin: 8px 0 14px;
-        padding: 0 18px 0 0;
+        padding: 0 22px 0 0;
+      }
+      ol {
+        list-style-type: decimal;
+        list-style-position: inside;
+        padding-right: 8px;
+      }
+      ol li {
+        padding-right: 4px;
       }
       li {
         margin: 0 0 8px;
         color: #1f2937;
       }
+      blockquote {
+        margin: 0 0 14px;
+        padding: 10px 14px;
+        border-right: 3px solid var(--brand);
+        background: var(--brand-soft);
+        border-radius: 0 8px 8px 0;
+        color: var(--brand);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--line);
+        margin: 18px 0;
+      }
+      em {
+        font-style: italic;
+      }
       strong {
         color: #020617;
         font-weight: 800;
+      }
+      .bold-label {
+        margin-top: 10px;
+        margin-bottom: 4px;
       }
       .table-wrap {
         margin: 16px 0 18px;
