@@ -187,11 +187,11 @@ lib/
     page-helpers.ts   — pure helpers: overlaps, hasTimedConflict, getRecurringSuggestion, targetRecurringDate
   materials/
     embedder.ts         — runEmbeddingPipeline (PDF/DOCX → chunks → pgvector); buildVectorStore
-    rag-chain.ts        — buildSummarizeChain (retriever + Hebrew structured output)
+    rag-chain.ts        — buildSummarizeChain (full-context chain: 3-phase Hebrew prompt — internal mapping → writing rules → structured output; 9-section study document)
     research-agent.ts   — streamResearchAgent (LangGraph ReAct + Tavily; yields step/chunk/done events)
     materials-constants.ts — MAX_FILE_BYTES, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL
     materials-utils.ts  — validateFile, buildStoragePath, formatFileSize
-    summary-document.ts — `renderSummaryBodyHtml` (Markdown→HTML for in-panel display) + `buildSummaryDocumentHtml` (full RTL print document for PDF download)
+    summary-document.ts — `renderSummaryBodyHtml` (Markdown→HTML for in-panel display) + `buildSummaryDocumentHtml` (full RTL print document for PDF download). Supports: headings, unordered/ordered lists, blockquotes (`> `), horizontal rules (`---`), tables, bold (`**`), italic (`*`), and `**Label:**` bold-label paragraphs (get `.bold-label` CSS class for spacing). Add new Markdown constructs here — never in the component.
   supabase/client.ts  — browser Supabase client
   supabase/server.ts  — server Supabase client (SSR)
   supabase/admin.ts   — createAdminClient() using SUPABASE_SERVICE_ROLE_KEY (server-only)
