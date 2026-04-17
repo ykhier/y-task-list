@@ -3,6 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { TutorialMaterial } from "@/types"
 
+async function readErrorMessage(res: Response, fallback: string) {
+  const text = await res.text()
+  try {
+    return (JSON.parse(text) as { error?: string }).error ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
 export function useMaterials(tutorialId: string | null) {
   const [materials, setMaterials] = useState<TutorialMaterial[]>([])
   const [loading, setLoading] = useState(false)
@@ -51,19 +60,33 @@ export function useMaterials(tutorialId: string | null) {
       setUploading(true)
       setError(null)
       try {
+        const existing = await fetch(`/api/materials?tutorialId=${tutorialId}`)
+        const current = existing.ok ? await existing.json() as TutorialMaterial[] : []
+
         const fd = new FormData()
         fd.append("tutorialId", tutorialId)
         fd.append("file", file)
         const res = await fetch("/api/materials/upload", { method: "POST", body: fd })
         if (!res.ok) {
-          const text = await res.text()
-          let msg = "Upload failed"
-          try { msg = (JSON.parse(text) as { error?: string }).error ?? msg } catch { /* non-JSON error */ }
-          throw new Error(msg)
+          throw new Error(await readErrorMessage(res, "Upload failed"))
         }
+
+        const uploaded = await res.json() as { materialId?: string }
+        const staleMaterials = current.filter((m) => m.id !== uploaded.materialId)
+
+        await Promise.all(
+          staleMaterials.map(async (m) => {
+            const deleteRes = await fetch(`/api/materials/${m.id}`, { method: "DELETE" })
+            if (!deleteRes.ok) {
+              throw new Error(await readErrorMessage(deleteRes, "Delete failed"))
+            }
+          }),
+        )
+
         await fetchMaterials(true)
       } catch (err) {
         setError(err instanceof Error ? err.message : "שגיאה בהעלאת הקובץ")
+        await fetchMaterials(true)
       } finally {
         setUploading(false)
       }
@@ -79,10 +102,7 @@ export function useMaterials(tutorialId: string | null) {
       try {
         const res = await fetch(`/api/materials/${materialId}`, { method: "DELETE" })
         if (!res.ok) {
-          const text = await res.text()
-          let msg = "Delete failed"
-          try { msg = (JSON.parse(text) as { error?: string }).error ?? msg } catch { /* non-JSON error */ }
-          throw new Error(msg)
+          throw new Error(await readErrorMessage(res, "Delete failed"))
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "שגיאה במחיקת הקובץ")
@@ -105,10 +125,7 @@ export function useMaterials(tutorialId: string | null) {
           body: JSON.stringify({ materialId }),
         })
         if (!res.ok) {
-          const text = await res.text()
-          let msg = "Retry failed"
-          try { msg = (JSON.parse(text) as { error?: string }).error ?? msg } catch { /* non-JSON error */ }
-          throw new Error(msg)
+          throw new Error(await readErrorMessage(res, "Retry failed"))
         }
         await fetchMaterials(true)
       } catch (err) {

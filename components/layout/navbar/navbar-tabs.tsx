@@ -49,9 +49,9 @@ export const NAVBAR_TABS: NavbarTabConfig[] = [
     sublabel: 'קבצים וסיכומים לתרגולים',
     value: 'materials',
     Icon: BookOpen,
-    activeGradient: 'from-emerald-500 to-emerald-600',
-    activeShadow: 'shadow-emerald-200',
-    iconBg: 'bg-emerald-50',
-    iconColor: 'text-emerald-500',
+    activeGradient: 'from-violet-500 to-violet-600',
+    activeShadow: 'shadow-violet-200',
+    iconBg: 'bg-violet-50',
+    iconColor: 'text-violet-500',
   },
 ]

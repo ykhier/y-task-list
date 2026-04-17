@@ -42,13 +42,13 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Item not found' }), { status: 404 })
   }
 
-  // Fetch up to 8 document chunks for context
+  // Fetch up to 20 document chunks for context
   const { data: chunks } = await supabase
     .from('material_chunks')
     .select('content')
     .eq('tutorial_id', tutorialId)
     .order('chunk_index', { ascending: true })
-    .limit(8)
+    .limit(20)
 
   const docContext = chunks && chunks.length > 0
     ? chunks.map((c: { content: string }) => c.content).join('\n\n')

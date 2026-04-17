@@ -34,7 +34,11 @@ export default function MaterialFileList({ materials, onDelete, onRetry }: Mater
             {m.file_name}
           </span>
 
-          <Badge variant={getStatusBadgeVariant(m.embedding_status)} className="shrink-0 text-xs">
+          <Badge
+            variant={getStatusBadgeVariant(m.embedding_status)}
+            className="shrink-0 text-xs"
+            title={m.embedding_status === 'error' && m.embedding_error ? m.embedding_error : undefined}
+          >
             {STATUS_LABELS[m.embedding_status]}
           </Badge>
 

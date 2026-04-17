@@ -49,7 +49,7 @@ export default function MaterialUploadZone({ uploading, onUpload }: MaterialUplo
       <p className="text-sm font-medium text-slate-600">
         {uploading ? "מעלה קובץ..." : "גרור לכאן או לחץ להעלאה"}
       </p>
-      <p className="text-xs text-slate-400">PDF, Word, TXT · עד {MAX_SIZE_LABEL}</p>
+      <p className="text-xs text-slate-400">PDF, Word, PowerPoint, TXT · עד {MAX_SIZE_LABEL}</p>
       <input
         ref={inputRef}
         type="file"

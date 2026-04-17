@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { validateFile, buildStoragePath } from '@/lib/materials/materials-utils'
 import { runEmbeddingPipeline } from '@/lib/materials/embedder'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   try {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const fileBuffer = Buffer.from(arrayBuffer)
 
-    const storagePath = buildStoragePath(user.id, tutorialId, material.id)
+    const storagePath = buildStoragePath(user.id, tutorialId, material.id, file.name)
     console.log('[upload] step 8: upload to storage', storagePath)
 
     const { error: storageError } = await adminClient.storage
