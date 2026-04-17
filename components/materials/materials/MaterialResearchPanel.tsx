@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ExternalLink, Loader2, Search } from "lucide-react"
+import { ExternalLink, Loader2, Search, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useResearchAgent } from "@/hooks/useResearchAgent"
@@ -67,13 +67,13 @@ function renderLine(line: string, key: number) {
 
 function parseLine(line: string): React.ReactNode[] {
   const result: React.ReactNode[] = []
-  // Match **bold** and [label](url) patterns
-  const pattern = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\)|(https?:\/\/\S+)/g
+  // [label](url) — label may contain one level of nested brackets (e.g. "AZ-104 [Hebrew]")
+  // (?:[^\[\]]|\[[^\]]*\])+ matches: sequences of non-bracket chars OR inner [bracket] pairs
+  const pattern = /\*\*([^*]+)\*\*|\[((?:[^\[\]]|\[[^\]]*\])+)\]\((https?:\/\/[^)]+)\)|(https?:\/\/\S+)/g
   let last = 0
   let match: RegExpExecArray | null
 
   while ((match = pattern.exec(line)) !== null) {
-    // Push plain text before this match
     if (match.index > last) {
       result.push(line.slice(last, match.index))
     }
@@ -82,7 +82,7 @@ function parseLine(line: string): React.ReactNode[] {
       // **bold**
       result.push(<strong key={match.index}>{match[1]}</strong>)
     } else if (match[2] !== undefined && match[3]) {
-      // [label](url) → label as clickable link + ExternalLink icon
+      // [label](url) → full label as the clickable link text
       result.push(
         <a
           key={match.index}
@@ -95,7 +95,11 @@ function parseLine(line: string): React.ReactNode[] {
         </a>
       )
     } else if (match[4]) {
-      // bare URL
+      // bare URL — use the hostname as the visible label
+      const label = (() => {
+        try { return new URL(match[4]).hostname.replace(/^www\./, '') }
+        catch { return match[4] }
+      })()
       result.push(
         <a
           key={match.index}
@@ -104,7 +108,7 @@ function parseLine(line: string): React.ReactNode[] {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-0.5 text-blue-600 hover:underline font-medium"
         >
-          קישור <ExternalLink className="h-3 w-3" />
+          {label} <ExternalLink className="h-3 w-3 shrink-0" />
         </a>
       )
     }
@@ -112,7 +116,6 @@ function parseLine(line: string): React.ReactNode[] {
     last = match.index + match[0].length
   }
 
-  // Remaining plain text
   if (last < line.length) result.push(line.slice(last))
   return result
 }
@@ -168,12 +171,17 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic }: Mate
       {/* Agent thinking steps */}
       {steps.length > 0 && !rawContent && (
         <div className="flex flex-col gap-1">
-          {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Search className="h-3 w-3 shrink-0" />
-              <span className="truncate">{step.input}</span>
-            </div>
-          ))}
+          {steps.map((step, i) => {
+            const isValidation = step.tool === 'validate_url'
+            return (
+              <div key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
+                {isValidation
+                  ? <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-400" />
+                  : <Search className="h-3 w-3 shrink-0" />}
+                <span className="truncate">{isValidation ? `מאמת: ${step.input}` : step.input}</span>
+              </div>
+            )
+          })}
         </div>
       )}
 

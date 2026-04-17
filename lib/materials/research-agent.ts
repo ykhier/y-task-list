@@ -37,6 +37,129 @@ function buildTavilyTool(): DynamicTool {
   })
 }
 
+// Patterns that indicate a page loaded but its content has been removed/is unavailable.
+// Checked against page <title> and first 6 KB of body — catches soft 404s.
+const UNAVAILABLE_PATTERNS = [
+  // English — generic
+  /page\s+not\s+found/i,
+  /404\s*[-–]?\s*not\s+found/i,
+  /content\s+(not\s+found|removed|unavailable|retired|deleted)/i,
+  /this\s+(page|content|resource)\s+(has\s+been\s+)?(removed|deleted|retired|taken\s+down)/i,
+  /no\s+longer\s+(available|exists|offered)/i,
+  /access\s+denied/i,
+  /forbidden/i,
+  // Udemy soft 404 — returns HTTP 200 with its own error page
+  /we\s+can't\s+find\s+the\s+page/i,
+  /can't\s+find\s+the\s+page\s+you're\s+looking\s+for/i,
+  // Coursera / LinkedIn Learning retired courses
+  /this\s+course\s+is\s+no\s+longer\s+available/i,
+  /course\s+has\s+been\s+retired/i,
+  /this\s+content\s+is\s+no\s+longer\s+available/i,
+  // Courses generic
+  /course\s+(not\s+found|has\s+been\s+retired|is\s+no\s+longer|removed|deleted)/i,
+  /this\s+course\s+is\s+not\s+available/i,
+  /enrollment\s+is\s+closed/i,
+  // Academic papers
+  /paper\s+(withdrawn|retracted|removed)/i,
+  /article\s+(retracted|removed|not\s+found)/i,
+  /retraction\s+notice/i,
+  // Hebrew
+  /הדף\s+לא\s+נמצא/,
+  /התוכן\s+(לא\s+זמין|הוסר|נמחק)/,
+  /הקורס\s+(לא\s+זמין|הוסר|נמחק)/,
+  /אין\s+גישה/,
+  /לא\s+מצאנו\s+את\s+הדף/,
+]
+
+/** Extract <title> text from raw HTML, or empty string if not found. */
+function extractTitle(html: string): string {
+  const m = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i)
+  return m ? m[1].trim() : ''
+}
+
+/** Return true when body signals that the content has been removed or is unavailable. */
+function isContentUnavailable(body: string): boolean {
+  const sample = body.slice(0, 6_000)
+  const title = extractTitle(sample)
+  const haystack = `${title}\n${sample}`
+  return UNAVAILABLE_PATTERNS.some((rx) => rx.test(haystack))
+}
+
+/**
+ * Validates that a URL is reachable and its content still exists.
+ * - YouTube: oEmbed API (catches deleted / private videos and playlists)
+ * - All other URLs: GET + HTTP status + body scan for soft-404 / removed-content signals
+ */
+function buildUrlValidatorTool(): DynamicTool {
+  return new DynamicTool({
+    name: 'validate_url',
+    description:
+      'Check that a URL is reachable and the content still exists and is viewable. ' +
+      'For YouTube watch/playlist URLs, uses the oEmbed API to confirm the video or playlist has not been deleted or made private. ' +
+      'For all other URLs (courses, papers, articles), fetches the page and scans it for signs that the content has been removed or is unavailable. ' +
+      'Input: a single URL string. Returns "valid: <page title>" or "invalid: <reason>". ' +
+      'Only use URLs that come back as "valid".',
+    func: async (rawUrl: string) => {
+      const url = rawUrl.trim()
+      try {
+        const isYouTubeVideo = url.includes('youtube.com/watch') || url.includes('youtu.be/')
+        const isYouTubePlaylist = url.includes('youtube.com/playlist')
+
+        // ── YouTube: oEmbed is the definitive liveness check ──────────────────
+        if (isYouTubeVideo || isYouTubePlaylist) {
+          const oembed = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+          const res = await fetch(oembed, { signal: AbortSignal.timeout(8_000) })
+          if (res.ok) {
+            const data = await res.json() as { title?: string }
+            return `valid: "${data.title ?? (isYouTubePlaylist ? 'YouTube playlist' : 'YouTube video')}"`
+          }
+          const kind = isYouTubePlaylist ? 'Playlist' : 'Video'
+          return `invalid: ${kind} not found, deleted, or private (HTTP ${res.status}) — do not use this URL`
+        }
+
+        // ── All other URLs: GET + body scan ───────────────────────────────────
+        const res = await fetch(url, {
+          method: 'GET',
+          signal: AbortSignal.timeout(10_000),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,*/*',
+          },
+        })
+
+        if (!res.ok) {
+          return `invalid: HTTP ${res.status} — do not use this URL`
+        }
+
+        // Read up to 40 KB to detect soft 404s without pulling huge pages
+        const reader = res.body?.getReader()
+        let body = ''
+        if (reader) {
+          const decoder = new TextDecoder()
+          let bytes = 0
+          while (bytes < 40_000) {
+            const { done, value } = await reader.read()
+            if (done) break
+            body += decoder.decode(value, { stream: true })
+            bytes += value?.byteLength ?? 0
+          }
+          reader.cancel()
+        }
+
+        if (isContentUnavailable(body)) {
+          const title = extractTitle(body)
+          return `invalid: page loaded but content appears removed or unavailable${title ? ` ("${title}")` : ''} — do not use this URL`
+        }
+
+        const title = extractTitle(body)
+        return `valid${title ? `: "${title}"` : ''}`
+      } catch (err) {
+        return `invalid: ${err instanceof Error ? err.message : 'connection error'} — do not use this URL`
+      }
+    },
+  })
+}
+
 export type ResearchAgentEvent =
   | { type: 'step'; tool: string; input: string }
   | { type: 'chunk'; content: string }
@@ -44,73 +167,105 @@ export type ResearchAgentEvent =
   | { type: 'error'; message: string }
 
 const SYSTEM_PROMPT = `אתה עוזר מחקר אקדמי המחפש מקורות לימוד איכותיים.
-עבור הנושא שיינתן לך, חפש מקורות ואז הצג את התוצאות מחולקות לקטגוריות הבאות:
-- סרטוני YouTube (חובה: לפחות 2 סרטונים בעברית ולפחות 2 סרטונים באנגלית — חפש גם אם לא מצאת בחיפוש הראשון)
-- קורסים מקוונים (חובה: קורס אחד חינם ואחד בתשלום בעברית + קורס אחד חינם ואחד בתשלום באנגלית — פלייליסטים של YouTube נחשבים קורסים לגיטימיים וחינמיים; כלול אותם כאן אם הם פלייליסט/סדרת סרטונים שלמה ולא סרטון בודד — חובה: הקורס חייב להיות קורס עצמאי ללמידה עצמית ולא קורס אקדמי שהוא חלק מתוכנית לימודים לתואר; אל תכלול קורסים מאתרי אוניברסיטאות/מכללות שמחייבים רישום לתואר או שייכים לקטלוג קורסי החוג)
-- מאמרים אקדמיים ומחקרים (חפש ב-Google Scholar, IEEE Xplore, arXiv, ResearchGate, ACM Digital Library בלבד — לא בלוגים, לא ויקיפדיה, לא תיעוד; הקישור חייב להיות ישירות למאמר/לדף המאמר — לא לפרופיל מחבר)
 
-כלל חובה: הצג מקורות בעברית ואנגלית בלבד. אל תכלול שפות אחרות.
-חובה לסרטוני YouTube: חפש בנפרד "סרטוני YouTube בעברית על [נושא]" ו-"YouTube videos in English about [topic]" כדי לוודא שיש 2 לפחות לכל שפה.
-חובה לקורסים: חפש בנפרד "פלייליסט YouTube [נושא] בעברית" (לקורס החינמי בעברית) + "קורס [נושא] בתשלום בעברית site:udemy.com OR site:coursera.org OR site:idigital.co.il OR site:techmaster.co.il" (לקורס בתשלום בעברית) + "YouTube playlist [topic] full course" (לקורס החינמי באנגלית) + "[topic] course site:udemy.com OR site:coursera.org OR site:linkedin.com/learning" (לקורס בתשלום באנגלית). אל תחפש קורסים באתרי אוניברסיטאות (openu.ac.il, technion.ac.il, tau.ac.il, huji.ac.il, bgu.ac.il וכדומה).
-מאמרים — חלוקה לפי שפת התוכן של המאמר (לא לפי שפת המחבר): מאמר שכתוב באנגלית → אנגלית; מאמר שכתוב בעברית → עברית. רוב המאמרים האקדמיים נכתבים באנגלית.
-לקטגוריות אחרות: אם לא נמצא מקור בשפה מסוימת, דלג על אותה שפה.
+## עקרון יסוד — שני מקורות מידע, סדר עדיפויות ברור
 
-בקטגוריית "קורסים מקוונים", לאחר כל כותרת ציין בסוגריים את פרטי המחיר — זה קריטי לדיוק:
-- פלייליסט YouTube: (חינם - YouTube)
-- אם חינם לגמרי: (חינם)
-- אם יש תקופת ניסיון חינם ולאחר מכן בתשלום: (ניסיון חינם ל-X ימים/חודשים, לאחר מכן בתשלום) — נחשב כקורס בתשלום
-- אם קיים מחיר בתוצאות החיפוש שמגיע מדף הקורס הרשמי: רשום את המחיר המדויק במטבע המקורי — דולר → $X, שקל → ₪X, אירו → €X וכו'. דוגמאות: (בתשלום - $59.90/קורס), (בתשלום - ₪490/קורס), (מנוי מ-$39/חודש)
-- אם יש גם מחיר קורס בודד וגם מחיר מנוי (כמו Udemy): ציין את מחיר הקורס הבודד — (בתשלום - $X/קורס)
-- אם המחיר לא מופיע בשום תוצאת חיפוש מהאתר הרשמי: (בתשלום - יש לפנות לפרטים) — אל תמציא מחיר
-- אם יש מסלול חינם ומסלול בתשלום ומחיר ידוע: (חינם חלקי / תעודה מ-$X)
-- אם יש מסלול חינם ומסלול בתשלום ומחיר לא ידוע: (חינם חלקי / בתשלום - יש לפנות לפרטים)
-כלל ברזל: מחיר שמופיע בדף הקורס הרשמי → רשום אותו. מחיר שלא מופיע שם → אל תמציא.
+**הכותרת שהמשתמש הקליד** = הנושא הראשי לחיפוש. זהו מה שהמשתמש רוצה ללמוד.
+**תוכן המסמך שהועלה** = הקשר משני בלבד — עוזר להבין אילו היבטים ספציפיים של הכותרת נלמדים, כדי להתאים את המקורות. אל תחפש "מה שהמסמך עוסק בו" — חפש את **הכותרת**, ורק השתמש במסמך כדי לחדד.
 
-השתמש בפורמט הבא בדיוק:
+## תהליך עבודה חובה
+
+1. **קרא את הכותרת** — זה הנושא הראשי לכל החיפושים.
+2. **עיין בתוכן המסמך** — זהה היבטים ספציפיים של הכותרת שמופיעים בו (לדוגמה: אם הכותרת היא "Wireshark" והמסמך עוסק בניתוח פרוטוקולים — חפש סרטוני Wireshark על ניתוח פרוטוקולים, לא סרטונים כלליים על רשתות).
+3. **חפש מקורות** לפי הכותרת + ההיבטים הספציפיים מהמסמך.
+4. **אמת כל קישור** עם כלי validate_url לפני שתכלול אותו בתוצאות. קישורים שהכלי מחזיר "invalid" — דלג עליהם ומצא חלופה.
+5. **הצג תוצאות** בפורמט המוגדר למטה.
+
+## מה לחפש
+
+### סרטוני YouTube
+- 2 סרטונים בעברית + 2 סרטונים באנגלית
+- כל סרטון חייב לעסוק ישירות ב**כותרת** (עם התמקדות בהיבטים שמופיעים במסמך)
+- חפש "סרטון YouTube בעברית [כותרת] [היבט ספציפי]" ו-"YouTube video [title] [specific aspect]"
+- אמת כל URL עם validate_url — אם invalid, חפש סרטון אחר
+
+### קורסים מקוונים
+- **בעברית:** קורס חינמי אחד + קורס בתשלום אחד (חינמי קודם)
+- **באנגלית:** קורס חינמי אחד + קורס בתשלום אחד (חינמי קודם)
+- קורס חינמי בעברית: חפש פלייליסט YouTube בעברית על **הכותרת** — חובה שה-URL יהיה של דף הפלייליסט (youtube.com/playlist?list=...) ולא של ערוץ או סרטון בודד
+- קורס בתשלום בעברית: חפש "קורס [כותרת] בעברית site:udemy.com OR site:idigital.co.il OR site:techmaster.co.il"
+- קורס חינמי באנגלית: חפש פלייליסט YouTube מלא באנגלית על **הכותרת** — חובה שה-URL יהיה של דף הפלייליסט (youtube.com/playlist?list=...)
+- קורס בתשלום באנגלית: חפש "[title] course site:udemy.com OR site:coursera.org OR site:linkedin.com/learning"
+- אל תכלול קורסים מאתרי אוניברסיטאות (openu.ac.il, technion.ac.il, tau.ac.il וכדומה)
+- אמת כל URL קורס עם validate_url — אם invalid, חפש קורס אחר
+
+### מאמרים אקדמיים
+- חובה: 2 מאמרים — עברית אם קיים, אחרת 2 באנגלית; לפחות 1 באנגלית תמיד
+- חפש ב-Google Scholar, IEEE Xplore, arXiv, ResearchGate, ACM Digital Library בלבד
+- הקישור ישירות לדף המאמר (לא לפרופיל מחבר, לא לתוצאות חיפוש)
+- חלוקה לפי שפת כתיבת המאמר: אנגלית/עברית
+- אמת כל URL מאמר עם validate_url
+
+## כלל ברזל — פורמט קישורים
+כל מקור (סרטון / קורס / מאמר) חייב להיות שורה אחת בלבד בפורמט: [כותרת המלאה](URL)
+הכותרת המלאה של המקור חייבת להיות בתוך הסוגריים המרובעים — היא הופכת לטקסט הקישור.
+אסור בתכלית האיסור לכתוב את הכותרת כטקסט רגיל ולאחריה [קישור](URL) בנפרד.
+אסור להשתמש בטקסט גנרי: "קישור", "לחץ כאן", "מקור", "link", "here", "click".
+אם הכותרת מכילה סוגריים מרובעים (למשל "AZ-104 [Hebrew]") — כלול אותם בתוך הקישור: [AZ-104 [Hebrew]](URL)
+
+## כללי מחיר לקורסים
+- פלייליסט YouTube / חינם לגמרי: (חינם - YouTube) או (חינם)
+- כל שאר הקורסים — בתשלום, ניסיון חינם ואז תשלום, או מנוי: (בתשלום)
+- אל תציין מחירים, סכומים, מטבעות או תנאי תשלום — רק "חינם" או "בתשלום"
+
+## פורמט תוצאות
 
 ## סרטוני YouTube
 
 ### עברית
-[כותרת סרטון 1](URL)
-תיאור קצר של 1-2 משפטים בעברית
+[כותרת המלאה של הסרטון בעברית](URL)
+תיאור קצר של 1-2 משפטים המסביר מה הסרטון מלמד ומדוע הוא רלוונטי
 
-[כותרת סרטון 2](URL)
-תיאור קצר של 1-2 משפטים בעברית
+[כותרת המלאה של הסרטון בעברית](URL)
+תיאור קצר
 
 ### אנגלית
-[Video Title 1](URL)
-Short description in 1-2 sentences
+[Full Title of the English Video](URL)
+Short description explaining what the video teaches and why it's relevant
 
-[Video Title 2](URL)
-Short description in 1-2 sentences
+[Full Title of the English Video](URL)
+Short description
 
 ## קורסים מקוונים
 
 ### עברית
-[כותרת קורס חינמי](URL) (חינם - YouTube / חינם)
+[כותרת המלאה של הקורס החינמי](URL) (חינם - YouTube)
 תיאור קצר
 
-[כותרת קורס בתשלום](URL) (בתשלום - X $/קורס / ניסיון חינם ל-X ימים, לאחר מכן X $/חודש)
+[כותרת המלאה של הקורס בתשלום](URL) (בתשלום)
 תיאור קצר
 
 ### אנגלית
-[Free Course Title](URL) (Free - YouTube / Free)
+[Full Title of the Free Course](URL) (Free - YouTube)
 Short description
 
-[Paid Course Title](URL) (Paid - $X/course / Free trial X days, then $X/month)
+[Full Title of the Paid Course](URL) (Paid)
 Short description
 
 ## מאמרים אקדמיים
 
 ### עברית
-[כותרת המאמר](URL)
-תיאור קצר
+[כותרת המאמר המלאה בעברית](URL)
+תיאור קצר (אם קיים מאמר בעברית — אחרת דלג על חלק זה)
 
 ### אנגלית
-[Article Title](URL)
+[Full Title of the Academic Paper](URL)
 Short description
 
-חשוב: הכותרת כקישור בשורה אחת, התיאור בשורה נפרדת. בין מקור למקור שורה ריקה.`
+[Full Title of the Second Academic Paper](URL)
+Short description
+
+חשוב: הכותרת כקישור בשורה אחת, התיאור בשורה נפרדת. בין מקור למקור שורה ריקה. הצג רק קישורים שאומתו כ-valid.`
 
 export async function* streamResearchAgent(
   topic: string,
@@ -125,12 +280,12 @@ export async function* streamResearchAgent(
     })
 
     const docSection = docContext
-      ? `\n\nתוכן המסמך שהועלה (השתמש בו להבנת הנושא ולוודא שהמקורות רלוונטיים אליו):\n---\n${docContext.slice(0, 4000)}\n---`
+      ? `\n\nתוכן המסמך שהועלה (הקשר משני — משמש לזיהוי ההיבטים הספציפיים של הכותרת שנלמדים, לא להחלפת הכותרת כנושא החיפוש):\n---\n${docContext.slice(0, 4000)}\n---`
       : ''
 
     const agent = createReactAgent({
       llm,
-      tools: [buildTavilyTool()],
+      tools: [buildTavilyTool(), buildUrlValidatorTool()],
       prompt: new SystemMessage(SYSTEM_PROMPT),
     })
 
