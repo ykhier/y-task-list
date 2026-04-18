@@ -213,7 +213,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     if (!user && !AUTH_PATHS.includes(pathname)) {
-      router.push("/signup");
+      router.push("/login");
       return;
     }
 
@@ -225,7 +225,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       if (!otpVerified && !otpSendingRef.current) {
         clearClientAuthState();
         void supabase.auth.signOut({ scope: "local" }).finally(() => {
-          window.location.replace("/signup");
+          window.location.replace("/login");
         });
         return;
       }
@@ -245,7 +245,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         new Promise((resolve) => window.setTimeout(resolve, SIGN_OUT_TIMEOUT_MS)),
       ]);
     } finally {
-      window.location.replace("/signup");
+      window.location.replace("/login");
     }
   };
 
