@@ -31,11 +31,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, sent: 0 })
   }
 
+  // Fill in missing emails from auth (for users created before the email trigger)
+  for (const profile of profiles) {
+    if (!profile.email) {
+      const { data } = await adminClient.auth.admin.getUserById(profile.id)
+      profile.email = data.user?.email ?? null
+    }
+  }
+
   let sent = 0
   const debugLog: object[] = []
 
   const results = await Promise.allSettled(
-    profiles.map(async (profile) => {
+    profiles.filter((p) => !!p.email).map(async (profile) => {
       const { timedItems, untimedTasks } = await fetchDigestForUser(profile.id, tomorrow)
 
       const html = buildDigestHtml({

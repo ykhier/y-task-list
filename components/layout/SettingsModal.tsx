@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, CheckCircle2, Loader2 } from "lucide-react";
+import { Bell, BellOff, CheckCircle2, Loader2, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +24,14 @@ interface SettingsModalProps {
 }
 
 type SaveState = "idle" | "saving" | "saved";
+type TestState = "idle" | "sending" | "sent" | "error";
 
 export default function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [testState, setTestState] = useState<TestState>("idle");
+  const [testError, setTestError] = useState<string | null>(null);
 
   // Fetch eagerly on mount so data is ready before the user opens the modal
   useEffect(() => {
@@ -37,6 +40,22 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
       .then((d) => setEnabled(d.digest_enabled ?? false))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleTestSend() {
+    setTestState("sending");
+    setTestError(null);
+    try {
+      const res = await fetch("/api/settings/test-digest", { method: "POST" });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "שגיאה לא ידועה");
+      setTestState("sent");
+      setTimeout(() => setTestState("idle"), 3000);
+    } catch (err) {
+      setTestError(err instanceof Error ? err.message : "שגיאה");
+      setTestState("error");
+      setTimeout(() => { setTestState("idle"); setTestError(null); }, 5000);
+    }
+  }
 
   async function handleSave() {
     setSaveState("saving");
@@ -149,6 +168,36 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
                 <p className="text-sm text-slate-700 font-medium">
                   הלו״ז שלך למחר - יום {getTomorrowDayName()} 📅
                 </p>
+              </div>
+            )}
+
+            {/* Test send button */}
+            {enabled && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleTestSend}
+                  disabled={testState === "sending"}
+                  className={cn(
+                    "w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 border",
+                    testState === "sent"
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : testState === "error"
+                      ? "bg-red-50 text-red-700 border-red-200"
+                      : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200",
+                    testState === "sending" && "opacity-70 cursor-not-allowed",
+                  )}
+                >
+                  {testState === "sending" && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {testState === "sent" && <CheckCircle2 className="h-4 w-4" />}
+                  {testState === "idle" && <Send className="h-4 w-4" />}
+                  {testState === "sending" && "שולח..."}
+                  {testState === "sent" && "המייל נשלח!"}
+                  {testState === "error" && "שליחה נכשלה"}
+                  {testState === "idle" && "שלח אלי עכשיו"}
+                </button>
+                {testError && (
+                  <p className="text-xs text-red-600 text-right">{testError}</p>
+                )}
               </div>
             )}
 
