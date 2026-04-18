@@ -18,47 +18,29 @@ export default function MaterialSummaryPanel({
   tutorialTitle,
   hasMaterials,
 }: MaterialSummaryPanelProps) {
-  const { summary, streaming, error, startSummarize } =
-    useSummarize(tutorialId);
+  const { summary, streaming, error, startSummarize } = useSummarize(tutorialId);
 
   const handleDownloadPdf = () => {
     if (!summary || typeof window === "undefined") return;
 
     const html = buildSummaryDocumentHtml(tutorialTitle, summary);
     const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
     iframe.setAttribute("aria-hidden", "true");
     document.body.appendChild(iframe);
 
-    const cleanup = () => {
-      window.setTimeout(() => {
-        iframe.remove();
-      }, 1000);
-    };
+    const cleanup = () => window.setTimeout(() => iframe.remove(), 1000);
 
     iframe.onload = () => {
-      const frameWindow = iframe.contentWindow;
-      if (!frameWindow) {
-        cleanup();
-        return;
-      }
-
-      frameWindow.focus();
-      frameWindow.print();
+      const fw = iframe.contentWindow;
+      if (!fw) { cleanup(); return; }
+      fw.focus();
+      fw.print();
       cleanup();
     };
 
     const doc = iframe.contentDocument;
-    if (!doc) {
-      cleanup();
-      return;
-    }
-
+    if (!doc) { cleanup(); return; }
     doc.open();
     doc.write(html);
     doc.close();
@@ -109,6 +91,7 @@ export default function MaterialSummaryPanel({
           {error}
         </p>
       )}
+
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { useResearchAgent } from "@/hooks/useResearchAgent"
 interface MaterialResearchPanelProps {
   tutorialId: string
   defaultTopic: string
+  waitingForFiles?: boolean
 }
 
 // ── Markdown renderer ──────────────────────────────────────────────────────────
@@ -50,6 +51,15 @@ function renderLine(line: string, key: number) {
 
   // Empty line → small spacer
   if (!line.trim()) return <div key={key} className="h-0.5" />
+
+  // Blockquote note ("> ...") — doc-relevance message
+  if (line.startsWith('> ')) {
+    return (
+      <div key={key} dir="rtl" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        {parseLine(line.slice(2))}
+      </div>
+    )
+  }
 
   // Auto-detect direction from the actual line content (title or description)
   const dir = getLineDir(line)
@@ -130,7 +140,7 @@ function ResearchContent({ content }: { content: string; streaming?: boolean }) 
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function MaterialResearchPanel({ tutorialId, defaultTopic }: MaterialResearchPanelProps) {
+export default function MaterialResearchPanel({ tutorialId, defaultTopic, waitingForFiles = false }: MaterialResearchPanelProps) {
   const [topic, setTopic] = useState(defaultTopic)
   const { steps, rawContent, streaming, error, startResearch, reset } = useResearchAgent(tutorialId)
 
@@ -156,7 +166,8 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic }: Mate
           type="button"
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          disabled={streaming || !topic.trim()}
+          disabled={streaming || !topic.trim() || waitingForFiles}
+          title={waitingForFiles ? "ממתין לסיום עיבוד הקבצים..." : undefined}
           onClick={() => { reset(); startResearch(topic.trim()) }}
         >
           {streaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}

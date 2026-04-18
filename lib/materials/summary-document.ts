@@ -10,6 +10,7 @@ function escapeHtml(value: string): string {
 function renderInline(text: string): string {
   const escaped = escapeHtml(text)
   return escaped
+    .replace(/`([^`]+)`/g, '<code dir="ltr">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
 }
@@ -47,10 +48,37 @@ function splitTableCells(line: string): string[] {
     .map((cell) => cell.trim())
 }
 
+function buildToc(summary: string): { toc: string; sectionIds: Map<string, string> } {
+  const lines = summary.replace(/\r\n/g, '\n').split('\n')
+  const headings: { text: string; id: string }[] = []
+  let counter = 0
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('## ')) {
+      const text = trimmed.slice(3)
+      headings.push({ text, id: `section-${counter++}` })
+    }
+  }
+
+  if (headings.length === 0) return { toc: '', sectionIds: new Map() }
+
+  const sectionIds = new Map(headings.map(({ text, id }) => [text, id]))
+
+  const items = headings
+    .map(({ text, id }) => `<li><a href="#${id}">${escapeHtml(text)}</a></li>`)
+    .join('')
+
+  const toc = `<nav class="toc"><h2 class="toc-title">תוכן עניינים</h2><ol>${items}</ol></nav>`
+  return { toc, sectionIds }
+}
+
 export function renderSummaryBodyHtml(summary: string): string {
   const lines = summary.replace(/\r\n/g, '\n').split('\n')
   const blocks: string[] = []
   let index = 0
+  const { toc, sectionIds } = buildToc(summary)
+  let h2Counter = 0
 
   while (index < lines.length) {
     const line = lines[index]
@@ -63,12 +91,16 @@ export function renderSummaryBodyHtml(summary: string): string {
 
     if (trimmed.startsWith('# ')) {
       blocks.push(`<h1>${renderInline(trimmed.slice(2))}</h1>`)
+      if (toc && blocks.length === 1) blocks.push(toc)
       index++
       continue
     }
 
     if (trimmed.startsWith('## ')) {
-      blocks.push(`<h2>${renderInline(trimmed.slice(3))}</h2>`)
+      const text = trimmed.slice(3)
+      const id = sectionIds.get(text) ?? `section-${h2Counter}`
+      h2Counter++
+      blocks.push(`<h2 id="${id}">${renderInline(text)}</h2>`)
       index++
       continue
     }
@@ -244,6 +276,39 @@ export function buildSummaryDocumentHtml(title: string, summary: string): string
         padding: 32px 22px 22px;
         background: white;
       }
+      .toc {
+        margin: 0 0 24px;
+        padding: 16px 18px;
+        background: #f0f6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 16px;
+      }
+      .toc-title {
+        margin: 0 0 10px !important;
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        color: var(--brand) !important;
+        border-top: none !important;
+        padding-top: 0 !important;
+      }
+      .toc ol {
+        margin: 0;
+        padding-right: 18px;
+        counter-reset: toc-counter;
+      }
+      .toc li {
+        margin: 4px 0;
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .toc a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
       h1, h2, h3 {
         break-after: avoid;
       }
@@ -310,6 +375,16 @@ export function buildSummaryDocumentHtml(title: string, summary: string): string
       }
       em {
         font-style: italic;
+      }
+      code {
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: 13px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 1px 5px;
+        color: #1e40af;
+        unicode-bidi: embed;
       }
       strong {
         color: #020617;

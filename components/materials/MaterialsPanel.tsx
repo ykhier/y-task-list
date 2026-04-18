@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useMaterials } from "@/hooks/useMaterials"
@@ -17,16 +17,34 @@ interface MaterialsPanelProps {
 }
 
 export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: MaterialsPanelProps) {
-  const { materials, uploading, error, uploadFile, deleteFile, retryEmbed } = useMaterials(tutorialId)
+  const { materials, loading: materialsLoading, uploading, error, uploadFile, deleteFile, retryEmbed } = useMaterials(tutorialId)
   const { courseName } = parseTutorialTitle(tutorialTitle)
   const hasDoneMaterials = materials.some((m) => m.embedding_status === "done")
+  const hasProcessingMaterials = materialsLoading || (materials.length > 0 && !hasDoneMaterials)
+  const [viewError, setViewError] = useState<string | null>(null)
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [onClose])
+
+  const handleViewFile = async (materialId: string, fileName: string) => {
+    setViewError(null)
+    try {
+      const params = new URLSearchParams({ materialId, fileName })
+      const res = await fetch(`/api/materials/signed-url?${params}`)
+      if (!res.ok) throw new Error("לא ניתן להוריד את הקובץ")
+      const { url } = await res.json() as { url: string }
+      const a = document.createElement("a")
+      a.href = url
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch {
+      setViewError("לא ניתן להוריד את הקובץ כרגע. נסה שוב.")
+    }
+  }
 
   return (
     <>
@@ -77,12 +95,18 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
                 {error}
               </p>
             )}
+            {viewError && (
+              <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                {viewError}
+              </p>
+            )}
             {materials.length > 0 && (
               <div className="mt-3">
                 <MaterialFileList
                   materials={materials}
                   onDelete={deleteFile}
                   onRetry={retryEmbed}
+                  onView={handleViewFile}
                 />
               </div>
             )}
@@ -101,7 +125,7 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
 
           {/* Research */}
           <section>
-            <MaterialResearchPanel tutorialId={tutorialId} defaultTopic={courseName || tutorialTitle} />
+            <MaterialResearchPanel tutorialId={tutorialId} defaultTopic={courseName || tutorialTitle} waitingForFiles={hasProcessingMaterials} />
           </section>
         </div>
 

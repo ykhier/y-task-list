@@ -12,9 +12,10 @@ interface MaterialFileListProps {
   materials: TutorialMaterial[]
   onDelete: (id: string) => void
   onRetry: (id: string) => void
+  onView: (id: string, fileName: string) => void
 }
 
-export default function MaterialFileList({ materials, onDelete, onRetry }: MaterialFileListProps) {
+export default function MaterialFileList({ materials, onDelete, onRetry, onView }: MaterialFileListProps) {
   if (materials.length === 0) return null
 
   return (
@@ -24,15 +25,21 @@ export default function MaterialFileList({ materials, onDelete, onRetry }: Mater
           key={m.id}
           className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm"
         >
-          {m.embedding_status === "processing" ? (
-            <Spinner className="h-4 w-4 shrink-0 text-blue-500" />
-          ) : (
-            <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-          )}
-
-          <span className="flex-1 truncate text-sm text-slate-700" title={m.file_name}>
-            {m.file_name}
-          </span>
+          <button
+            type="button"
+            className="flex flex-1 items-center gap-3 min-w-0 text-right hover:opacity-70 transition-opacity"
+            onClick={() => onView(m.id, m.file_name)}
+            aria-label={`פתח ${m.file_name}`}
+          >
+            {m.embedding_status === "processing" ? (
+              <Spinner className="h-4 w-4 shrink-0 text-blue-500" />
+            ) : (
+              <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+            )}
+            <span className="flex-1 truncate text-sm text-slate-700 text-right" title={m.file_name}>
+              {m.file_name}
+            </span>
+          </button>
 
           <Badge
             variant={getStatusBadgeVariant(m.embedding_status)}
