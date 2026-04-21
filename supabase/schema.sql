@@ -130,7 +130,7 @@ create extension if not exists vector;
 create table if not exists public.tutorial_materials (
   id               uuid primary key default uuid_generate_v4(),
   user_id          uuid not null references auth.users(id) on delete cascade,
-  tutorial_id      uuid not null references public.tutorials(id) on delete cascade,
+  tutorial_id      uuid not null,
   file_name        text not null,
   storage_path     text not null,
   file_size_bytes  bigint,
@@ -159,7 +159,7 @@ create table if not exists public.material_chunks (
   id           uuid primary key default uuid_generate_v4(),
   user_id      uuid not null references auth.users(id) on delete cascade,
   material_id  uuid not null references public.tutorial_materials(id) on delete cascade,
-  tutorial_id  uuid not null references public.tutorials(id) on delete cascade,
+  tutorial_id  uuid not null,
   content      text not null,
   metadata     jsonb default '{}'::jsonb,
   embedding    vector(1536),

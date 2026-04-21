@@ -44,15 +44,23 @@ export async function POST(req: NextRequest) {
     const validationError = validateFile(file)
     if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
-    console.log('[upload] step 4: verify tutorial ownership')
-    const { data: tutorial, error: tutorialError } = await supabase
+    console.log('[upload] step 4: verify event ownership')
+    const { data: tutorial } = await supabase
       .from('tutorials')
       .select('id')
       .eq('id', tutorialId)
       .eq('user_id', user.id)
       .single()
-    if (tutorialError) console.error('[upload] tutorial lookup error:', tutorialError.message)
-    if (!tutorial) return NextResponse.json({ error: 'Tutorial not found' }, { status: 404 })
+
+    if (!tutorial) {
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('id', tutorialId)
+        .eq('user_id', user.id)
+        .single()
+      if (!session) return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
 
     console.log('[upload] step 5: create admin client')
     const adminClient = createAdminClient()
