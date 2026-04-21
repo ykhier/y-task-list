@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { after } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -107,37 +106,33 @@ export async function POST(req: NextRequest) {
       .update({ storage_path: storagePath, embedding_status: 'processing' })
       .eq('id', material.id)
 
-    // Return immediately — embedding runs in the background after response is sent
-    const materialId = material.id
-    after(async () => {
-      console.log('[upload] background: run embedding pipeline')
-      try {
-        const { chunksCreated } = await runEmbeddingPipeline(
-          materialId,
-          fileBuffer,
-          { tutorialId, userId: user.id, fileName: file.name, mimeType: file.type },
-          adminClient,
-        )
-        await adminClient
-          .from('tutorial_materials')
-          .update({ embedding_status: 'done' })
-          .eq('id', materialId)
-        console.log('[upload] background: done, chunks created:', chunksCreated)
-      } catch (embErr) {
-        const msg = embErr instanceof Error ? embErr.message : 'Embedding failed'
-        console.error('[upload] background: embedding error:', embErr)
-        await adminClient
-          .from('tutorial_materials')
-          .update({ embedding_status: 'error', embedding_error: msg })
-          .eq('id', materialId)
-      }
-    })
+    console.log('[upload] step 9: run embedding pipeline')
+    try {
+      const { chunksCreated } = await runEmbeddingPipeline(
+        material.id,
+        fileBuffer,
+        { tutorialId, userId: user.id, fileName: file.name, mimeType: file.type },
+        adminClient,
+      )
+      await adminClient
+        .from('tutorial_materials')
+        .update({ embedding_status: 'done' })
+        .eq('id', material.id)
+      console.log('[upload] done, chunks created:', chunksCreated)
+    } catch (embErr) {
+      const msg = embErr instanceof Error ? embErr.message : 'Embedding failed'
+      console.error('[upload] embedding error:', embErr)
+      await adminClient
+        .from('tutorial_materials')
+        .update({ embedding_status: 'error', embedding_error: msg })
+        .eq('id', material.id)
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
 
-    console.log('[upload] returning early, embedding running in background')
     return NextResponse.json({
       materialId: material.id,
       fileName: file.name,
-      embeddingStatus: 'processing',
+      embeddingStatus: 'done',
     })
   } catch (err) {
     console.error('[upload] unhandled exception:', err)
