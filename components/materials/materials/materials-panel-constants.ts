@@ -8,4 +8,4 @@ export const STATUS_LABELS: Record<EmbeddingStatus, string> = {
 }
 
 export const ACCEPTED_FILE_TYPES = ".pdf,.doc,.docx,.pptx,.txt"
-export const MAX_SIZE_LABEL = "50 MB"
+export const MAX_SIZE_LABEL = "20 MB"

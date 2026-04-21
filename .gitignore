@@ -11,6 +11,7 @@ out/
 
 # Claude Code (skills, memory, settings)
 .claude/
+SKILL.md
 
 # OS files
 .DS_Store

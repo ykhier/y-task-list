@@ -63,20 +63,6 @@ async function extractPdfText(buf: Buffer, fileName: string): Promise<{
   }
 }
 
-async function runJsonWorker(command: string, args: string[], timeout = 120000): Promise<{
-  text?: string
-  pages?: number
-  error?: string
-}> {
-  const { stdout } = await execFileAsync(command, args, {
-    cwd: process.cwd(),
-    timeout,
-    maxBuffer: 10 * 1024 * 1024,
-  })
-
-  return JSON.parse(stdout) as { text?: string; pages?: number; error?: string }
-}
-
 /**
  * Extracts plain text from a .docx buffer using only Node.js built-ins.
  * DOCX = ZIP archive containing word/document.xml (deflate-compressed).
@@ -119,27 +105,82 @@ async function extractDocxText(buf: Buffer): Promise<string> {
 }
 
 async function extractPptxText(buf: Buffer): Promise<string> {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'materials-pptx-'))
-  const pptxPath = path.join(tempDir, 'presentation.pptx')
-  const workerPath = path.join(process.cwd(), 'scripts', 'extract-pptx-text.py')
+  const SLIDE_RE = /^ppt\/slides\/slide(\d+)\.xml$/
+  const slides: Array<{ num: number; text: string }> = []
 
-  try {
-    await writeFile(pptxPath, buf)
-
-    const parsed = await runJsonWorker('python', [workerPath, pptxPath])
-    if (parsed.error) {
-      throw new Error(parsed.error)
+  let offset = 0
+  while (offset < buf.length - 30) {
+    if (
+      buf[offset] !== 0x50 || buf[offset + 1] !== 0x4b ||
+      buf[offset + 2] !== 0x03 || buf[offset + 3] !== 0x04
+    ) {
+      offset++
+      continue
     }
 
-    const text = parsed.text?.trim()
-    if (!text) {
-      throw new Error('לא ניתן לחלץ טקסט מקובץ ה-PowerPoint')
+    const method = buf.readUInt16LE(offset + 8)
+    const compressedSize = buf.readUInt32LE(offset + 18)
+    const nameLen = buf.readUInt16LE(offset + 26)
+    const extraLen = buf.readUInt16LE(offset + 28)
+    const name = buf.subarray(offset + 30, offset + 30 + nameLen).toString('utf8')
+    const dataStart = offset + 30 + nameLen + extraLen
+
+    const match = SLIDE_RE.exec(name)
+    if (match) {
+      const slideNum = parseInt(match[1], 10)
+      const compressed = buf.subarray(dataStart, dataStart + compressedSize)
+      const xml = method === 0
+        ? compressed.toString('utf8')
+        : (await inflateRawAsync(compressed)).toString('utf8')
+
+      const texts: string[] = []
+      const textRe = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g
+      let m: RegExpExecArray | null
+      while ((m = textRe.exec(xml)) !== null) {
+        const val = m[1]
+          .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+          .trim()
+        if (val) texts.push(val)
+      }
+
+      if (texts.length > 0) {
+        slides.push({ num: slideNum, text: texts.join('\n') })
+      }
     }
 
-    return text
-  } finally {
-    await rm(tempDir, { recursive: true, force: true })
+    if (compressedSize === 0 && method !== 0) {
+      offset = dataStart + 1
+    } else {
+      offset = dataStart + compressedSize
+    }
   }
+
+  slides.sort((a, b) => a.num - b.num)
+  const combined = slides
+    .map(s => `Slide ${s.num}\n${s.text}`)
+    .join('\n\n')
+    .trim()
+
+  if (!combined) {
+    throw new Error('לא ניתן לחלץ טקסט מקובץ ה-PowerPoint')
+  }
+
+  return combined
+}
+
+const MAX_WORDS = 4_000
+
+function truncateToWords(text: string, maxWords = MAX_WORDS): string {
+  let count = 0
+  let i = 0
+  while (i < text.length && count < maxWords) {
+    while (i < text.length && /\s/.test(text[i])) i++
+    if (i >= text.length) break
+    while (i < text.length && !/\s/.test(text[i])) i++
+    count++
+  }
+  return count >= maxWords ? text.slice(0, i) : text
 }
 
 export function buildVectorStore(serviceClient: SupabaseClient): SupabaseVectorStore {
@@ -169,21 +210,19 @@ export async function runEmbeddingPipeline(
   if (mime === 'application/pdf') {
     const { Document } = await import('@langchain/core/documents')
     const parsed = await extractPdfText(fileBuffer, meta.fileName)
-    docs = [new Document({ pageContent: parsed.text, metadata: { source: meta.fileName, pages: parsed.pages } })]
+    docs = [new Document({ pageContent: truncateToWords(parsed.text), metadata: { source: meta.fileName, pages: parsed.pages } })]
   } else if (
     mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     mime === 'application/msword'
   ) {
     const { Document } = await import('@langchain/core/documents')
-    const text = await extractDocxText(fileBuffer)
-    docs = [new Document({ pageContent: text, metadata: { source: meta.fileName } })]
+    docs = [new Document({ pageContent: truncateToWords(await extractDocxText(fileBuffer)), metadata: { source: meta.fileName } })]
   } else if (mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
     const { Document } = await import('@langchain/core/documents')
-    const text = await extractPptxText(fileBuffer)
-    docs = [new Document({ pageContent: text, metadata: { source: meta.fileName } })]
+    docs = [new Document({ pageContent: truncateToWords(await extractPptxText(fileBuffer)), metadata: { source: meta.fileName } })]
   } else {
     const { Document } = await import('@langchain/core/documents')
-    docs = [new Document({ pageContent: fileBuffer.toString('utf-8'), metadata: {} })]
+    docs = [new Document({ pageContent: truncateToWords(fileBuffer.toString('utf-8')), metadata: {} })]
   }
 
   const splitter = new RecursiveCharacterTextSplitter({ chunkSize: CHUNK_SIZE, chunkOverlap: CHUNK_OVERLAP })

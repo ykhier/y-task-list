@@ -1,4 +1,4 @@
-export const MAX_FILE_BYTES = 52_428_800 // 50 MB
+export const MAX_FILE_BYTES = 20_971_520 // 20 MB
 
 export const ACCEPTED_MIME_TYPES = [
   'application/pdf',
