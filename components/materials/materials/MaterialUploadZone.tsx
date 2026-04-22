@@ -4,18 +4,35 @@ import { useRef, useState } from "react"
 import { UploadCloud } from "lucide-react"
 import Spinner from "@/components/ui/Spinner"
 import { ACCEPTED_FILE_TYPES, MAX_SIZE_LABEL } from "./materials-panel-constants"
+import { ACCEPTED_MIME_TYPES, MAX_FILE_BYTES } from "@/lib/materials/materials-constants"
 
 interface MaterialUploadZoneProps {
   uploading: boolean
   onUpload: (file: File) => void
 }
 
+const MAX_MB = MAX_FILE_BYTES / 1_048_576
+
 export default function MaterialUploadZone({ uploading, onUpload }: MaterialUploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const handleFile = (file: File) => {
-    if (!uploading) onUpload(file)
+    if (uploading) return
+
+    if (!ACCEPTED_MIME_TYPES.includes(file.type as (typeof ACCEPTED_MIME_TYPES)[number])) {
+      setValidationError("סוג קובץ לא נתמך. ניתן להעלות קבצי PDF, Word, PowerPoint או TXT בלבד.")
+      return
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      setValidationError(`הקובץ גדול מדי. הגודל המרבי הוא ${MAX_MB} MB (הקובץ שלך: ${(file.size / 1_048_576).toFixed(1)} MB).`)
+      return
+    }
+
+    setValidationError(null)
+    onUpload(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -36,9 +53,11 @@ export default function MaterialUploadZone({ uploading, onUpload }: MaterialUplo
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center cursor-pointer transition-colors ${
-        dragging
-          ? "border-blue-400 bg-blue-50"
-          : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50"
+        validationError
+          ? "border-red-300 bg-red-50"
+          : dragging
+            ? "border-blue-400 bg-blue-50"
+            : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50"
       } ${uploading ? "pointer-events-none opacity-60" : ""}`}
     >
       {uploading ? (
@@ -49,7 +68,11 @@ export default function MaterialUploadZone({ uploading, onUpload }: MaterialUplo
       <p className="text-sm font-medium text-slate-600">
         {uploading ? "מעלה קובץ..." : "גרור לכאן או לחץ להעלאה"}
       </p>
-      <p className="text-xs text-slate-400">PDF, Word, PowerPoint, TXT · עד {MAX_SIZE_LABEL}</p>
+      {validationError ? (
+        <p className="text-xs font-medium text-red-600">{validationError}</p>
+      ) : (
+        <p className="text-xs text-slate-400">PDF, Word, PowerPoint, TXT · עד {MAX_SIZE_LABEL}</p>
+      )}
       <input
         ref={inputRef}
         type="file"
