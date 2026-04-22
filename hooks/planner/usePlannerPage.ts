@@ -238,15 +238,35 @@ export function usePlannerPage() {
   ) => {
     const completedTaskIds = new Set(tasks.filter((t) => t.is_completed).map((t) => t.id))
     const visibleEvents = events.filter((ev) => !ev.task_id || !completedTaskIds.has(ev.task_id))
-    const conflicting = visibleEvents.find(
-      (ev) =>
-        (!editingEvent?.id || ev.id !== editingEvent.id) &&
-        ev.date === data.date &&
-        overlaps(data.start_time, data.end_time, ev.start_time, ev.end_time),
-    )
-    if (conflicting) {
-      setEventError(`חופף עם "${conflicting.title}" (${conflicting.start_time}–${conflicting.end_time}). אנא בחר שעה אחרת.`)
-      return
+
+    // When editing, only check for conflicts if the time slot actually changed.
+    // If only the title/color changed, there can be no new scheduling conflict.
+    // This also guards against false positives where the event's ID in visibleEvents
+    // doesn't match editingEvent.id (e.g. linked session vs tutorial ID mismatch).
+    const timeSlotChanged = !editingEvent ||
+      data.date !== editingEvent.date ||
+      data.start_time.slice(0, 5) !== editingEvent.start_time.slice(0, 5) ||
+      (data.end_time ?? '').slice(0, 5) !== (editingEvent.end_time ?? '').slice(0, 5)
+
+    if (timeSlotChanged) {
+      const conflicting = visibleEvents.find((ev) => {
+        if (editingEvent) {
+          // Exclude by ID (exact match)
+          if (ev.id === editingEvent.id) return false
+          // Exclude recurring copies: same logical event but different DB row
+          // (created by "צרף קבועות"). These share the same title and original time.
+          if (
+            ev.title === editingEvent.title &&
+            ev.start_time.slice(0, 5) === editingEvent.start_time.slice(0, 5) &&
+            (ev.end_time ?? '').slice(0, 5) === (editingEvent.end_time ?? '').slice(0, 5)
+          ) return false
+        }
+        return ev.date === data.date && overlaps(data.start_time, data.end_time, ev.start_time, ev.end_time)
+      })
+      if (conflicting) {
+        setEventError(`חופף עם "${conflicting.title}" (${conflicting.start_time}–${conflicting.end_time}). אנא בחר שעה אחרת.`)
+        return
+      }
     }
 
     if (!editingEvent && !eventSuggestionShown.current) {
@@ -346,7 +366,7 @@ export function usePlannerPage() {
       onClose: () => setTutorialModalOpen(false),
       onSave: async (
         id: string,
-        data: { date: string; start_time: string; end_time: string; is_recurring: boolean; color: string },
+        data: { title: string; date: string; start_time: string; end_time: string; is_recurring: boolean; color: string },
       ) => {
         await updateTutorial(id, data)
       },

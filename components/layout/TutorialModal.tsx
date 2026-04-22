@@ -55,11 +55,12 @@ interface TutorialModalProps {
   open: boolean
   tutorial: CalendarEvent | null
   onClose: () => void
-  onSave: (id: string, data: { date: string; start_time: string; end_time: string; is_recurring: boolean; color: string }) => Promise<void>
+  onSave: (id: string, data: { title: string; date: string; start_time: string; end_time: string; is_recurring: boolean; color: string }) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
 export default function TutorialModal({ open, tutorial, onClose, onSave, onDelete }: TutorialModalProps) {
+  const [title, setTitle]             = useState('')
   const [dayIndex, setDayIndex]       = useState(0)
   const [startTime, setStartTime]     = useState('10:00')
   const [endTime, setEndTime]         = useState('11:00')
@@ -69,6 +70,7 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
 
   useEffect(() => {
     if (tutorial) {
+      setTitle(tutorial.title)
       setDayIndex(getDayIndexFromDate(tutorial.date))
       setStartTime(tutorial.start_time)
       setEndTime(tutorial.end_time)
@@ -81,8 +83,10 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!title.trim()) return
     setSaving(true)
     await onSave(tutorial.id, {
+      title:        title.trim(),
       date:         getDateForWeekday(dayIndex),
       start_time:   startTime,
       end_time:     endTime,
@@ -106,7 +110,17 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <p className="text-sm text-slate-500">{tutorial.title}</p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="tut-title">כותרת *</Label>
+            <Input
+              id="tut-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="שם התרגול"
+              autoFocus
+              required
+            />
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <Label>יום</Label>
