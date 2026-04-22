@@ -26,11 +26,11 @@ import type { ParsedVoiceInput } from "@/hooks/useVoiceInput";
 import type { CalendarEvent } from "@/types";
 
 const COLOR_OPTIONS = [
-  { label: "כחול", value: "blue" },
-  { label: "ירוק", value: "green" },
-  { label: "כתום", value: "orange" },
-  { label: "סגול", value: "purple" },
-  { label: "אדום", value: "red" },
+  { label: "כחול",  value: "blue",   dot: "bg-blue-400" },
+  { label: "ירוק",  value: "green",  dot: "bg-green-400" },
+  { label: "כתום",  value: "orange", dot: "bg-orange-400" },
+  { label: "סגול",  value: "purple", dot: "bg-purple-400" },
+  { label: "אדום",  value: "red",    dot: "bg-red-400" },
 ];
 
 // ── Shared sub-components ────────────────────────────────
@@ -323,7 +323,10 @@ export default function EventModal({
               <HebrewSelectContent>
                 {COLOR_OPTIONS.map((c) => (
                   <HebrewSelectItem key={c.value} value={c.value}>
-                    {c.label}
+                    <span className="flex items-center gap-2">
+                      {c.label}
+                      <span className={`h-3 w-3 rounded-full ${c.dot}`} />
+                    </span>
                   </HebrewSelectItem>
                 ))}
               </HebrewSelectContent>
