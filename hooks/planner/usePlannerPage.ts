@@ -294,6 +294,23 @@ export function usePlannerPage() {
     try {
       if (editingEvent) {
         await updateEvent(editingEvent.id, data)
+
+        // Propagate is_recurring change to all manual-event copies with same title+day+time
+        if (editingEvent.is_recurring !== data.is_recurring && editingEvent.source === 'manual') {
+          const originalDayIndex = new Date(`${editingEvent.date}T00:00:00`).getDay()
+          const originalStart = editingEvent.start_time.slice(0, 5)
+          const copies = events.filter(
+            (ev) =>
+              ev.id !== editingEvent.id &&
+              ev.source === 'manual' &&
+              ev.title === editingEvent.title &&
+              ev.start_time.slice(0, 5) === originalStart &&
+              new Date(`${ev.date}T00:00:00`).getDay() === originalDayIndex,
+          )
+          if (copies.length > 0) {
+            await Promise.all(copies.map((ev) => updateEvent(ev.id, { is_recurring: data.is_recurring })))
+          }
+        }
       } else {
         const { data: result, error: saveError } = await addEvent(data)
         if (!result) {
@@ -368,7 +385,33 @@ export function usePlannerPage() {
         id: string,
         data: { title: string; date: string; start_time: string; end_time: string; is_recurring: boolean; color: string },
       ) => {
-        await updateTutorial(id, data)
+        if (!editingTutorial) {
+          await updateTutorial(id, data)
+          return
+        }
+
+        const originalDayIndex = new Date(`${editingTutorial.date}T00:00:00`).getDay()
+        const newDayIndex = new Date(`${data.date}T00:00:00`).getDay()
+        const dayDiff = newDayIndex - originalDayIndex
+        const originalStart = editingTutorial.start_time.slice(0, 5)
+
+        // Always update ALL copies that share the same title + day-of-week + start time.
+        // When the day changes, shift each copy's date by dayDiff; otherwise keep its own date.
+        const matches = tutorials.filter(
+          (t) =>
+            t.title === editingTutorial.title &&
+            t.start_time.slice(0, 5) === originalStart &&
+            new Date(`${t.date}T00:00:00`).getDay() === originalDayIndex,
+        )
+
+        await Promise.all(
+          matches.map((t) => {
+            const newDate = dayDiff !== 0
+              ? (() => { const d = new Date(`${t.date}T00:00:00`); d.setDate(d.getDate() + dayDiff); return d.toISOString().slice(0, 10) })()
+              : t.date
+            return updateTutorial(t.id, { ...data, date: newDate })
+          }),
+        )
       },
       onDelete: async (id: string) => {
         await deleteTutorial(id)

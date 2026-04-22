@@ -118,6 +118,20 @@ export function useWeekSync() {
       const original = tasks.find((t) => t.id === id)
       await updateTask(id, data)
 
+      // Propagate is_recurring change to all copies sharing the same signature
+      if (data.is_recurring !== undefined && original) {
+        const sig = getRecurringSignature(original)
+        const copies = tasks.filter((t) => t.id !== id && getRecurringSignature(t) === sig)
+        if (copies.length > 0) {
+          await Promise.all(copies.map((t) => updateTask(t.id, { is_recurring: data.is_recurring })))
+          const linkedEventUpdates = copies.flatMap((t) => {
+            const ev = events.find((e) => e.task_id === t.id)
+            return ev ? [updateEvent(ev.id, { is_recurring: data.is_recurring })] : []
+          })
+          if (linkedEventUpdates.length > 0) await Promise.all(linkedEventUpdates)
+        }
+      }
+
       // Sync time change → update linked event
       if (data.time !== undefined || data.title !== undefined || data.date !== undefined || data.is_recurring !== undefined) {
         const existingEvent = events.find((e) => e.task_id === id)

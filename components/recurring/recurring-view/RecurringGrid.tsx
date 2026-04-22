@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import type { RefObject } from 'react'
-import { Pencil } from 'lucide-react'
 import { timeRangeToHeight, timeToOffset } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import TimeLabelsColumn from '@/components/calendar/TimeLabelsColumn'
@@ -19,23 +18,15 @@ import type { Task } from '@/types'
 interface RecurringGridProps {
   byDay: Record<number, GridItem[]>
   chipsByDay: Record<number, Pattern<Task>[]>
-  selected: string | null
   scrollRef: RefObject<HTMLDivElement | null>
   mobileScrollRef: RefObject<HTMLDivElement | null>
-  onSelect: (key: string | null) => void
-  onEditTimedItem: (item: GridItem) => void
-  onEditChip: (task: Task) => void
 }
 
 export default function RecurringGrid({
   byDay,
   chipsByDay,
-  selected,
   scrollRef,
   mobileScrollRef,
-  onSelect,
-  onEditTimedItem,
-  onEditChip,
 }: RecurringGridProps) {
   const [selectedDayIndex, setSelectedDayIndex] = useState(new Date().getDay())
 
@@ -58,16 +49,11 @@ export default function RecurringGrid({
 
       {chipsByDay[dayIndex].map((pattern) => (
         <div key={pattern.key} className="absolute inset-x-1 top-1 z-10 flex flex-col gap-0.5">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-2 py-1.5 text-right transition-colors hover:bg-green-100"
-            onClick={() => onEditChip(pattern.item)}
-          >
+          <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-2 py-1.5 text-right">
             <span className="flex-1 truncate text-[10px] font-medium text-green-700">
               {pattern.item.title}
             </span>
-            <Pencil className="h-4 w-4 flex-shrink-0 text-blue-600" />
-          </button>
+          </div>
         </div>
       ))}
 
@@ -80,52 +66,28 @@ export default function RecurringGrid({
           28,
         )
         const colors = RECURRING_EVENT_COLORS[item.color] ?? RECURRING_EVENT_COLORS.blue
-        const isSelected = selected === item.key
 
         return (
           <div
             key={item.key}
-            onClick={(event) => {
-              event.stopPropagation()
-              onSelect(isSelected ? null : item.key)
-            }}
             style={{ top, height, minHeight: 28 }}
             className={cn(
               'absolute inset-x-0.5 overflow-hidden rounded-sm border-l-2 px-1 text-center select-none',
-              'flex cursor-pointer flex-col items-center justify-center',
+              'flex flex-col items-center justify-center',
               colors.bg,
               colors.text,
               colors.border,
-              isSelected && 'ring-2 ring-blue-400 ring-offset-0',
             )}
           >
-            <div className={cn('w-full', isSelected && 'opacity-0')}>
-              <p className="w-full break-words whitespace-normal text-center text-[10px] font-bold leading-tight sm:text-xs">
-                {item.title}
+            <p className="w-full break-words whitespace-normal text-center text-[10px] font-bold leading-tight sm:text-xs">
+              {item.title}
+            </p>
+            {height >= 36 && (
+              <p className="mt-0.5 text-[9px] opacity-70 sm:text-[10px]">
+                <span dir="ltr">
+                  {hhmm(item.startTime)}-{hhmm(item.endTime)}
+                </span>
               </p>
-              {height >= 36 && (
-                <p className="mt-0.5 text-[9px] opacity-70 sm:text-[10px]">
-                  <span dir="ltr">
-                    {hhmm(item.startTime)}-{hhmm(item.endTime)}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            {isSelected && (
-              <div
-                className="absolute inset-0 z-10 flex items-center justify-center rounded-sm bg-white/35 backdrop-blur-[1px]"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  aria-label={`Edit ${item.title}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/70 shadow-sm ring-2 ring-blue-300 transition-transform hover:scale-105 hover:bg-white/85"
-                  onClick={() => onEditTimedItem(item)}
-                >
-                  <Pencil className="h-5 w-5 text-blue-600" />
-                </button>
-              </div>
             )}
           </div>
         )

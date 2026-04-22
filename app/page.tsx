@@ -69,8 +69,6 @@ export default function AppPage() {
               tasks={tasks}
               events={events}
               tutorials={tutorials}
-              onEditTask={recurringActions.updateTask}
-              onEditEvent={openEditEvent}
             />
           </div>
         )}
