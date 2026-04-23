@@ -158,8 +158,8 @@ export default function TutorialModal({ open, tutorial, onClose, onSave, onDelet
                 {COLOR_OPTIONS.map((c) => (
                   <HebrewSelectItem key={c.value} value={c.value}>
                     <span className="flex items-center gap-2">
-                      <span className={`h-3 w-3 rounded-full ${c.dot}`} />
                       {c.label}
+                      <span className={`h-3 w-3 rounded-full ${c.dot}`} />
                     </span>
                   </HebrewSelectItem>
                 ))}
