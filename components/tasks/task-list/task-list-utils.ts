@@ -43,6 +43,7 @@ export interface TaskDialogState {
   open: boolean
   title: string
   suggestion?: string | null
+  error?: string | null
   editTask?: Task | null
   initialDate: string
   tasks: Task[]

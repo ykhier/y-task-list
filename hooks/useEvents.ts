@@ -181,7 +181,7 @@ export function useEvents() {
         return { data: null, error: error.message }
       }
 
-      setEvents((prev) => [...prev, event])
+      setEvents((prev) => (prev.some((e) => e.id === event.id) ? prev : [...prev, event]))
       return { data: event, error: null }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'שגיאה בשמירת האירוע'
@@ -256,7 +256,11 @@ export function useEvents() {
       }
 
       const saved = data ?? []
-      setEvents((prev) => [...prev, ...saved])
+      setEvents((prev) => {
+        const existingIds = new Set(prev.map((e) => e.id))
+        const fresh = saved.filter((e) => !existingIds.has(e.id))
+        return fresh.length > 0 ? [...prev, ...fresh] : prev
+      })
       return saved
     } catch (err) {
       setError(err instanceof Error ? err.message : 'שגיאה בשמירת האירועים')

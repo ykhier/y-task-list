@@ -16,6 +16,7 @@ function TaskDialog({
   open,
   title,
   suggestion,
+  error,
   editTask,
   initialDate,
   tasks,
@@ -39,6 +40,11 @@ function TaskDialog({
               לחץ &quot;הוסף משימה&quot; שוב כדי להוסיף ידנית, או סגור ולחץ &quot;צרף קבועות&quot;.
             </p>
           </div>
+        )}
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {error}
+          </p>
         )}
         <TaskForm
           initialDate={initialDate}

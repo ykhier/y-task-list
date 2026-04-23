@@ -62,7 +62,7 @@ export function useWeekSync() {
   const handleAddTask = useCallback(
     async (data: Omit<Task, 'id' | 'user_id' | 'created_at' | 'is_completed'>) => {
       const task = await addTask(data)
-      if (!task) return
+      if (!task) throw new Error('שגיאה בשמירת המשימה. בדוק את החיבור ונסה שוב.')
 
       // If task has time → auto-create event
       if (task.time && task.end_time) {
@@ -191,9 +191,15 @@ export function useWeekSync() {
 
   const handleDeleteEvent = useCallback(
     async (id: string) => {
-      await Promise.all([deleteTutorialBySessionId(id), deleteEvent(id)])
+      const event = events.find((e) => e.id === id)
+      const taskId = event?.task_id
+      await Promise.all([
+        deleteTutorialBySessionId(id),
+        deleteEvent(id),
+        ...(taskId ? [deleteTask(taskId)] : []),
+      ])
     },
-    [deleteEvent, deleteTutorialBySessionId]
+    [events, deleteEvent, deleteTutorialBySessionId, deleteTask]
   )
 
   const handleAddTutorial = useCallback(

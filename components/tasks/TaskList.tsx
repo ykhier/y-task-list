@@ -52,6 +52,7 @@ export default function TaskList({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [saving, setSaving] = useState(false);
   const [addSuggestion, setAddSuggestion] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const addSuggestionShown = useRef(false);
 
   const today = toDateStr(new Date());
@@ -110,6 +111,7 @@ export default function TaskList({
   const resetAddDialog = () => {
     setDialogOpen(false);
     setAddSuggestion(null);
+    setSaveError(null);
     addSuggestionShown.current = false;
   };
 
@@ -124,11 +126,14 @@ export default function TaskList({
     }
 
     setAddSuggestion(null);
+    setSaveError(null);
     addSuggestionShown.current = false;
     setSaving(true);
     try {
       await onAdd(data);
       setDialogOpen(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'שגיאה בשמירה. נסה שוב.');
     } finally {
       setSaving(false);
     }
@@ -190,6 +195,7 @@ export default function TaskList({
           open: dialogOpen,
           title: "משימה חדשה",
           suggestion: addSuggestion,
+          error: saveError,
           initialDate: selectedDate ?? toDateStr(new Date()),
           tasks,
           events,
