@@ -28,8 +28,8 @@ function renderLine(line: string, key: number) {
   if (line.startsWith('## ')) {
     return (
       <div key={key} dir="rtl" className="mt-5 mb-1 flex items-center gap-2">
-        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">{line.slice(3)}</span>
-        <div className="flex-1 h-px bg-slate-200" />
+        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">{line.slice(3)}</span>
+        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ function renderLine(line: string, key: number) {
     return (
       <div key={key} dir="rtl">
         <span className={`mt-2 mb-0.5 inline-block text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded ${
-          isHebrew ? 'text-emerald-700 bg-emerald-50' : 'text-blue-700 bg-blue-50'
+          isHebrew ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30' : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30'
         }`}>
           {lang}
         </span>
@@ -55,7 +55,7 @@ function renderLine(line: string, key: number) {
   // Blockquote note ("> ...") — doc-relevance message
   if (line.startsWith('> ')) {
     return (
-      <div key={key} dir="rtl" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+      <div key={key} dir="rtl" className="mb-3 rounded-md border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
         {parseLine(line.slice(2))}
       </div>
     )
@@ -68,7 +68,7 @@ function renderLine(line: string, key: number) {
     <p
       key={key}
       dir={dir}
-      className={`text-sm leading-relaxed text-slate-600 ${dir === 'ltr' ? 'ml-1 text-left' : 'mr-1 text-right'}`}
+      className={`text-sm leading-relaxed text-slate-600 dark:text-slate-300 ${dir === 'ltr' ? 'ml-1 text-left' : 'mr-1 text-right'}`}
     >
       {parts}
     </p>
@@ -151,7 +151,7 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic, waitin
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-slate-700">חיפוש מקורות</h3>
+      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">חיפוש מקורות</h3>
 
       <div className="flex gap-2">
         <Input
@@ -176,7 +176,7 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic, waitin
       </div>
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+        <p className="rounded-md border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
 
       {/* Agent thinking steps */}
@@ -185,7 +185,7 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic, waitin
           {steps.map((step, i) => {
             const isValidation = step.tool === 'validate_url'
             return (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
+              <div key={i} className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
                 {isValidation
                   ? <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-400" />
                   : <Search className="h-3 w-3 shrink-0" />}
@@ -198,7 +198,7 @@ export default function MaterialResearchPanel({ tutorialId, defaultTopic, waitin
 
       {/* Rendered results */}
       {rawContent && (
-        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
           <ResearchContent content={rawContent} />
           {streaming && (
             <span className="inline-block h-4 w-0.5 animate-pulse bg-blue-500 align-middle ml-0.5" />

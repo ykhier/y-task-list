@@ -15,7 +15,7 @@ export default function TaskListHeader({
   onAddClick,
 }: TaskListHeaderProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 bg-white flex-shrink-0">
+    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
       <div className="flex-1 flex items-center gap-1 min-w-0">
         {TASK_LIST_FILTERS.map(({ label, value }) => (
           <button
@@ -25,7 +25,7 @@ export default function TaskListHeader({
               'flex-1 px-1.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer min-h-[34px] focus:outline-none focus:ring-2 focus:ring-blue-500',
               filter === value
                 ? 'bg-blue-500 text-white shadow-sm shadow-blue-200'
-                : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700',
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200',
             )}
           >
             {label}

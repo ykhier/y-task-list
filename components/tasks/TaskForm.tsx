@@ -242,7 +242,7 @@ export default function TaskForm({
             required
             className="flex-1"
           />
-          <span className="text-slate-400 text-sm flex-shrink-0">עד</span>
+          <span className="text-slate-400 dark:text-slate-500 text-sm flex-shrink-0">עד</span>
           <Input
             id="task-end-time"
             type="time"
@@ -269,19 +269,19 @@ export default function TaskForm({
       </div>
 
       {timeError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+        <div className="rounded-lg border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
           ⚠️ {timeError}
         </div>
       )}
 
       {conflict && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+        <div className="rounded-lg border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
           ⚠️ {conflict}
         </div>
       )}
 
       {voiceFeedback && (
-        <p className="rounded-md px-3 py-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 text-right">
+        <p className="rounded-md px-3 py-1.5 text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700/40 text-right">
           {voiceFeedback}
         </p>
       )}

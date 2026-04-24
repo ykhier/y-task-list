@@ -35,8 +35,8 @@ export function CalendarDesktopToolbar({
   onAddEvent,
 }: SharedToolbarProps) {
   return (
-    <div className="hidden sm:flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-white flex-shrink-0 gap-2">
-      <span className="text-xs text-slate-500 font-medium min-w-0 truncate">{weekLabel}</span>
+    <div className="hidden sm:flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 gap-2">
+      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium min-w-0 truncate">{weekLabel}</span>
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onPrevWeek}>
           <ChevronRight className="h-4 w-4" />
@@ -83,9 +83,9 @@ export function CalendarMobileToolbar({
   onAddEvent,
 }: Omit<SharedToolbarProps, 'onPrevWeek' | 'onNextWeek'>) {
   return (
-    <div className="flex sm:hidden items-center justify-between px-3 py-2 border-b border-slate-100 bg-white flex-shrink-0 gap-2">
+    <div className="flex sm:hidden items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs text-slate-500 font-medium truncate">{weekLabel}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{weekLabel}</span>
         {!isCurrentWeek && (
           <button
             onClick={onToday}
@@ -122,30 +122,30 @@ export function MobileWeekNavigation({
   onNextWeek,
 }: MobileWeekNavigationProps) {
   return (
-    <div className="flex sm:hidden flex-shrink-0 bg-white border-b border-slate-100 px-3 py-2.5 gap-2.5">
+    <div className="flex sm:hidden flex-shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-3 py-2.5 gap-2.5">
       <button
         onClick={onPrevWeek}
-        className="group relative flex-1 flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-blue-200 hover:bg-blue-50/60"
+        className="group relative flex-1 flex items-center gap-3 px-3.5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-blue-200 dark:hover:border-blue-700 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
       >
-        <div className="relative flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+        <div className="relative flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-200 dark:shadow-blue-900">
           <ArrowRight className="h-4.5 w-4.5 text-white" style={{ width: 18, height: 18 }} />
         </div>
         <div className="relative flex flex-col items-start min-w-0">
-          <span className="text-xs font-bold text-slate-800 leading-tight">שבוע קודם</span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">שבוע קודם</span>
           <span className="text-[10px] text-slate-400 font-medium mt-0.5 truncate max-w-[90px]">{prevWeekLabel}</span>
         </div>
       </button>
 
       <div className="flex items-center flex-shrink-0">
-        <div className="w-1 h-1 rounded-full bg-slate-300" />
+        <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
       </div>
 
       <button
         onClick={onNextWeek}
-        className="group relative flex-1 flex items-center justify-end gap-3 px-3.5 py-3 rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-violet-200 hover:bg-violet-50/60"
+        className="group relative flex-1 flex items-center justify-end gap-3 px-3.5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-violet-200 dark:hover:border-violet-700 hover:bg-violet-50/60 dark:hover:bg-violet-950/30"
       >
         <div className="relative flex flex-col items-end min-w-0">
-          <span className="text-xs font-bold text-slate-800 leading-tight">שבוע הבא</span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">שבוע הבא</span>
           <span className="text-[10px] text-slate-400 font-medium mt-0.5 truncate max-w-[90px]">{nextWeekLabel}</span>
         </div>
         <div className="relative flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-sm shadow-violet-200">

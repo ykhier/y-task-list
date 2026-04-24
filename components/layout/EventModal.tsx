@@ -342,7 +342,7 @@ export default function EventModal({
 
           {/* Tutorial section — only on create */}
           {!editEvent && (
-            <div className="flex flex-col gap-3 border border-slate-200 rounded-lg p-3 bg-slate-50">
+            <div className="flex flex-col gap-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="tutorial-toggle"
@@ -388,12 +388,12 @@ export default function EventModal({
           )}
 
           {suggestion && (
-            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 flex flex-col gap-1">
+            <div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/40 rounded-md px-3 py-2 flex flex-col gap-1">
               <p className="font-semibold">
                 שים לב — קיים תוכן קבוע מהשבוע הקודם
               </p>
               <p>{suggestion}</p>
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-amber-600 dark:text-amber-400">
                 {
                   'לחץ "המשך בכל זאת" כדי להוסיף ידנית, או סגור ולחץ "צרף קבועות".'
                 }
@@ -402,7 +402,7 @@ export default function EventModal({
           )}
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-700/40 rounded-md px-3 py-2">
               {error}
             </p>
           )}

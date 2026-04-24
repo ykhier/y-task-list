@@ -170,9 +170,9 @@ export default function TaskList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <CheckCircle2 className="mb-3 h-8 w-8 text-slate-200" />
-            <p className="text-sm font-medium text-slate-400">אין משימות כאן</p>
-            <p className="mt-1 text-xs text-slate-400">הוסף כדי להתחיל</p>
+            <CheckCircle2 className="mb-3 h-8 w-8 text-slate-200 dark:text-slate-700" />
+            <p className="text-sm font-medium text-slate-400 dark:text-slate-500">אין משימות כאן</p>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-600">הוסף כדי להתחיל</p>
           </div>
         ) : (
           <ul className="flex flex-col">

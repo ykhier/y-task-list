@@ -19,6 +19,22 @@
     --ring: 59 130 246;
   }
 
+  .dark {
+    --background: 15 23 42;           /* slate-900 */
+    --foreground: 241 245 249;        /* slate-100 */
+    --card: 30 41 59;                 /* slate-800 */
+    --border: 51 65 85;               /* slate-700 */
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+    --muted: 30 41 59;                /* slate-800 */
+    --muted-foreground: 148 163 184;  /* slate-400 */
+    --accent: 23 37 84;               /* blue-950 */
+    --accent-foreground: 147 197 253; /* blue-300 */
+    --popover: 30 41 59;              /* slate-800 */
+    --popover-foreground: 241 245 249;
+    --ring: 59 130 246;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -30,8 +46,13 @@
     overscroll-behavior: contain;      /* Prevent accidental pull-to-refresh */
   }
 
+  .dark body {
+    background-color: rgb(15 23 42);
+    color: rgb(241 245 249);
+  }
+
   * {
-    @apply border-slate-200;
+    @apply border-slate-200 dark:border-slate-700;
     box-sizing: border-box;
   }
 
@@ -40,6 +61,9 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+  .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 }
 
 @layer utilities {

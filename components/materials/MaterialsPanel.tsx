@@ -58,17 +58,17 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
       {/* Panel — bottom sheet on mobile, right side sheet on desktop */}
       <div
         dir="rtl"
-        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-2xl bg-white shadow-2xl
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-2xl bg-white dark:bg-slate-900 shadow-2xl dark:shadow-slate-950/80
           sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:w-[420px] sm:rounded-none sm:rounded-l-2xl sm:max-h-none"
       >
         {/* Drag handle (mobile only) */}
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden" />
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-200 dark:bg-slate-700 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h2 className="text-base font-semibold text-slate-800">חומרי לימוד</h2>
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 px-4 py-3">
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">חומרי לימוד</h2>
           <div className="flex items-center gap-1">
-            <p className="max-w-[200px] truncate text-xs text-slate-400" title={tutorialTitle}>
+            <p className="max-w-[200px] truncate text-xs text-slate-400 dark:text-slate-500" title={tutorialTitle}>
               {tutorialTitle}
             </p>
             <Button
@@ -88,15 +88,15 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5">
           {/* Upload */}
           <section>
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">קבצים</h3>
+            <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">קבצים</h3>
             <MaterialUploadZone uploading={uploading} onUpload={uploadFile} />
             {error && (
-              <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              <p className="mt-2 rounded-md border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">
                 {error}
               </p>
             )}
             {viewError && (
-              <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              <p className="mt-2 rounded-md border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">
                 {viewError}
               </p>
             )}
@@ -113,7 +113,7 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
           </section>
 
           {/* Divider */}
-          <div className="h-px bg-slate-100" />
+          <div className="h-px bg-slate-100 dark:bg-slate-700/50" />
 
           {/* Summary */}
           <section>
@@ -121,7 +121,7 @@ export default function MaterialsPanel({ tutorialId, tutorialTitle, onClose }: M
           </section>
 
           {/* Divider */}
-          <div className="h-px bg-slate-100" />
+          <div className="h-px bg-slate-100 dark:bg-slate-700/50" />
 
           {/* Research */}
           <section>

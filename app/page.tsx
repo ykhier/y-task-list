@@ -29,9 +29,9 @@ export default function AppPage() {
   } = usePlannerPage()
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F8FAFC]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#F8FAFC] dark:bg-slate-900">
       {/* Safe-area spacer for iPhone notch / Dynamic Island */}
-      <div className="flex-shrink-0 bg-white h-[env(safe-area-inset-top,0px)]" />
+      <div className="flex-shrink-0 bg-white dark:bg-slate-900 h-[env(safe-area-inset-top,0px)]" />
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="flex-1 overflow-hidden">

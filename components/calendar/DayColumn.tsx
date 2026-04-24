@@ -40,7 +40,7 @@ export default function DayColumn({
 
   return (
     <div
-      className="relative border-l border-slate-200"
+      className="relative border-l border-slate-200 dark:border-slate-800"
       style={{ height: hours.length * HOUR_HEIGHT }}
     >
       {hours.map((hour) => (
@@ -99,8 +99,8 @@ export default function DayColumn({
             }
           }}
           style={{ top: (hour - gridStartHour) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-          className={`absolute inset-x-0 cursor-pointer border-b border-slate-200 transition-colors duration-100 ${
-            dragOverSlot === hour ? 'bg-blue-100/60' : 'hover:bg-blue-50/40'
+          className={`absolute inset-x-0 cursor-pointer border-b border-slate-200 dark:border-slate-800 transition-colors duration-100 ${
+            dragOverSlot === hour ? 'bg-blue-100/60 dark:bg-blue-900/30' : 'hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
           }`}
         />
       ))}

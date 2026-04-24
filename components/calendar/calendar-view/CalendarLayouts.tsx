@@ -54,7 +54,7 @@ export function MobileCalendarLayout({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden sm:hidden">
-      <div className="flex-shrink-0 border-b border-slate-100 bg-white">
+      <div className="flex-shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="no-scrollbar flex gap-0.5 overflow-x-auto px-1 py-2">
           {weekDays.map((day) => {
             const isSelected = selectedDayStr === day.dateStr
@@ -65,13 +65,13 @@ export function MobileCalendarLayout({
                 onClick={() => onSelectDay(day.dateStr)}
                 className={cn(
                   'flex min-w-[44px] flex-1 cursor-pointer flex-col items-center gap-0.5 rounded-xl py-1.5 transition-colors duration-150',
-                  isSelected && !day.isToday && 'bg-blue-50'
+                  isSelected && !day.isToday && 'bg-blue-50 dark:bg-blue-950/40'
                 )}
               >
                 <span
                   className={cn(
                     'text-[11px] font-medium',
-                    day.isToday ? 'text-blue-500' : isSelected ? 'text-blue-600' : 'text-slate-400'
+                    day.isToday ? 'text-blue-500' : isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
                   )}
                 >
                   {day.label}
@@ -82,8 +82,8 @@ export function MobileCalendarLayout({
                     day.isToday
                       ? 'bg-blue-500 text-white'
                       : isSelected
-                        ? 'text-blue-600 ring-2 ring-blue-400'
-                        : 'text-slate-700'
+                        ? 'text-blue-600 dark:text-blue-400 ring-2 ring-blue-400 dark:ring-blue-600'
+                        : 'text-slate-700 dark:text-slate-200'
                   )}
                 >
                   {day.dayNum}
@@ -143,14 +143,14 @@ export function DesktopCalendarLayout({
     <div className="hidden flex-1 overflow-x-auto overflow-y-hidden sm:flex sm:flex-col">
       <div className="flex h-full flex-col" style={{ minWidth: '480px' }}>
         <div
-          className="grid flex-shrink-0 border-b border-slate-100 bg-white"
+          className="grid flex-shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
           style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}
         >
-          <div className="border-l border-slate-100" />
+          <div className="border-l border-slate-100 dark:border-slate-800" />
           {weekDays.map((day) => (
             <div
               key={day.dateStr}
-              className="flex flex-col items-center justify-center gap-0.5 border-l border-slate-100 py-2"
+              className="flex flex-col items-center justify-center gap-0.5 border-l border-slate-100 dark:border-slate-800 py-2"
             >
               <span
                 className={cn(
@@ -163,7 +163,7 @@ export function DesktopCalendarLayout({
               <span
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-full text-lg font-bold leading-none',
-                  day.isToday ? 'bg-blue-500 text-white' : 'text-slate-700'
+                  day.isToday ? 'bg-blue-500 text-white' : 'text-slate-700 dark:text-slate-200'
                 )}
               >
                 {day.dayNum}

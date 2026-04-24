@@ -14,14 +14,14 @@ export default function TimeLabelsColumn({
   const hours = buildHours(gridStartHour, gridEndHour)
 
   return (
-    <div className="relative border-l border-slate-200">
+    <div className="relative border-l border-slate-200 dark:border-slate-800">
       {hours.map((hour) => (
         <div
           key={hour}
           style={{ top: (hour - gridStartHour) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-          className="absolute inset-x-0 flex items-center justify-end border-b border-slate-200 pr-2"
+          className="absolute inset-x-0 flex items-center justify-end border-b border-slate-200 dark:border-slate-800 pr-2"
         >
-          <span className="text-[10px] font-medium text-slate-500">
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-500">
             {String(hour % 24).padStart(2, '0')}:00
           </span>
         </div>

@@ -33,7 +33,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 px-4 py-3.5 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 animate-fade-in mx-3 my-1.5',
+        'group flex items-center gap-3 px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-150 animate-fade-in mx-3 my-1.5',
         isDeleting && 'opacity-0 scale-95'
       )}
     >
@@ -50,7 +50,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            'text-sm font-medium text-slate-800 transition-all duration-200',
+            'text-sm font-medium text-slate-800 dark:text-slate-100 transition-all duration-200',
             task.is_completed && 'line-through text-slate-400 task-done'
           )}
         >
@@ -59,7 +59,7 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
 
         {task.description && (
           <p className={cn(
-            'mt-0.5 text-xs text-slate-500 flex items-center gap-1',
+            'mt-0.5 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1',
             task.is_completed && 'opacity-60'
           )}>
             <FileText className="h-3 w-3 flex-shrink-0" />
@@ -69,10 +69,10 @@ export default function TaskItem({ task, onToggle, onDelete, onEdit }: TaskItemP
 
         <div className={cn('mt-0.5 flex items-center gap-2', task.is_completed && 'opacity-60')}>
           <CalendarDays className="h-3 w-3 text-slate-400 flex-shrink-0" />
-          <span className="text-xs text-slate-400">יום {getDayLabel(task.date)}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">יום {getDayLabel(task.date)}</span>
           {task.is_recurring && (
             <>
-              <span className="text-slate-300 text-xs">·</span>
+              <span className="text-slate-300 dark:text-slate-600 text-xs">·</span>
               <Repeat2 className="h-3 w-3 text-violet-400 flex-shrink-0" />
               <span className="text-xs text-violet-500 font-medium">חוזר כל שבוע</span>
             </>

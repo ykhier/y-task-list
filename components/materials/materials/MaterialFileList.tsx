@@ -23,7 +23,7 @@ export default function MaterialFileList({ materials, onDelete, onRetry, onView 
       {materials.map((m) => (
         <li
           key={m.id}
-          className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm"
+          className="flex items-center gap-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 shadow-sm"
         >
           <button
             type="button"
@@ -36,7 +36,7 @@ export default function MaterialFileList({ materials, onDelete, onRetry, onView 
             ) : (
               <FileText className="h-4 w-4 shrink-0 text-slate-400" />
             )}
-            <span className="flex-1 truncate text-sm text-slate-700 text-right" title={m.file_name}>
+            <span className="flex-1 truncate text-sm text-slate-700 dark:text-slate-200 text-right" title={m.file_name}>
               {m.file_name}
             </span>
           </button>

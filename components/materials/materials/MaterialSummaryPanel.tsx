@@ -49,7 +49,7 @@ export default function MaterialSummaryPanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">סיכום חכם</h3>
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">סיכום חכם</h3>
         <div className="flex gap-2">
           {summary && !streaming && (
             <Button
@@ -67,7 +67,7 @@ export default function MaterialSummaryPanel({
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs font-semibold border-violet-200 bg-gradient-to-l from-violet-50 to-white text-violet-700 hover:from-violet-100 hover:to-violet-50 hover:border-violet-300 disabled:opacity-50"
+            className="h-8 gap-1.5 text-xs font-semibold border-violet-200 dark:border-violet-700/40 bg-gradient-to-l from-violet-50 to-white dark:from-violet-950/40 dark:to-slate-800 text-violet-700 dark:text-violet-300 hover:from-violet-100 hover:to-violet-50 dark:hover:from-violet-950/60 dark:hover:to-slate-700 hover:border-violet-300 dark:hover:border-violet-600 disabled:opacity-50"
             disabled={streaming || !hasMaterials}
             onClick={startSummarize}
           >
@@ -87,7 +87,7 @@ export default function MaterialSummaryPanel({
       </div>
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <p className="rounded-md border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">
           {error}
         </p>
       )}

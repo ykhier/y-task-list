@@ -54,10 +54,10 @@ export default function MaterialUploadZone({ uploading, onUpload }: MaterialUplo
       onDrop={handleDrop}
       className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center cursor-pointer transition-colors ${
         validationError
-          ? "border-red-300 bg-red-50"
+          ? "border-red-300 dark:border-red-600/50 bg-red-50 dark:bg-red-950/20"
           : dragging
-            ? "border-blue-400 bg-blue-50"
-            : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50"
+            ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30"
+            : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
       } ${uploading ? "pointer-events-none opacity-60" : ""}`}
     >
       {uploading ? (
@@ -65,13 +65,13 @@ export default function MaterialUploadZone({ uploading, onUpload }: MaterialUplo
       ) : (
         <UploadCloud className="h-8 w-8 text-slate-400" />
       )}
-      <p className="text-sm font-medium text-slate-600">
+      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
         {uploading ? "מעלה קובץ..." : "גרור לכאן או לחץ להעלאה"}
       </p>
       {validationError ? (
-        <p className="text-xs font-medium text-red-600">{validationError}</p>
+        <p className="text-xs font-medium text-red-600 dark:text-red-400">{validationError}</p>
       ) : (
-        <p className="text-xs text-slate-400">PDF, Word, PowerPoint, TXT · עד {MAX_SIZE_LABEL}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">PDF, Word, PowerPoint, TXT · עד {MAX_SIZE_LABEL}</p>
       )}
       <input
         ref={inputRef}

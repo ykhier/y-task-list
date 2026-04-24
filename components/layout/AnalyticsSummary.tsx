@@ -14,14 +14,14 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, icon: Icon, color }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-4 flex items-start gap-3">
+    <div className="rounded-xl border border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800 p-4 flex items-start gap-3">
       <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div>
-        <p className="text-2xl font-semibold text-slate-800">{value}</p>
-        <p className="text-xs font-medium text-slate-500 mt-0.5">{label}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        <p className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{value}</p>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{label}</p>
+        {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -66,8 +66,8 @@ export default function AnalyticsSummary({ tasks, events }: AnalyticsSummaryProp
   return (
     <div className="flex flex-col gap-6 p-4 overflow-y-auto h-full animate-fade-in">
       <div>
-        <h2 className="text-base font-semibold text-slate-800">סיכום שבועי</h2>
-        <p className="text-xs text-slate-500 mt-0.5">הפרודוקטיביות שלך במבט אחד</p>
+        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">סיכום שבועי</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">הפרודוקטיביות שלך במבט אחד</p>
       </div>
 
       {/* Stats grid */}
@@ -102,8 +102,8 @@ export default function AnalyticsSummary({ tasks, events }: AnalyticsSummaryProp
       </div>
 
       {/* Day-by-day bar chart */}
-      <div className="rounded-xl border border-slate-100 bg-white p-4">
-        <h3 className="text-sm font-medium text-slate-700 mb-4">משימות ליום</h3>
+      <div className="rounded-xl border border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800 p-4">
+        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">משימות ליום</h3>
         <div className="flex items-end gap-2 h-24">
           {daysOfWeek.map((day) => {
             const totalH    = day.total > 0 ? (day.total / maxTasks) * 100 : 0
@@ -131,11 +131,11 @@ export default function AnalyticsSummary({ tasks, events }: AnalyticsSummaryProp
           })}
         </div>
         <div className="flex items-center gap-3 mt-3">
-          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+          <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
             <span className="h-2 w-2 rounded-full bg-blue-400 inline-block" /> הושלמו
           </span>
-          <span className="flex items-center gap-1 text-[10px] text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-slate-100 inline-block border border-slate-200" /> סה״כ
+          <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+            <span className="h-2 w-2 rounded-full bg-slate-100 dark:bg-slate-700 inline-block border border-slate-200 dark:border-slate-600" /> סה״כ
           </span>
         </div>
       </div>
